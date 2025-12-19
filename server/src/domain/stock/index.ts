@@ -1,4 +1,4 @@
-import type Quote from "./quote";
-import type Ticker from "./ticker";
+import type Holding from "./holding";
+import type Stock from "./stock";
 
-export { type Quote, type Ticker };
+export { type Holding, type Stock };

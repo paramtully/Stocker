@@ -16,13 +16,15 @@ export default class VantageStock {
             const data = await response.json();
       
             if (data["Global Quote"] && Object.keys(data["Global Quote"]).length > 0) {
-              const quote = data["Global Quote"];
-              return {
-                ticker: quote["01. symbol"],
-                price: parseFloat(quote["05. price"]),
-                changePercent: parseFloat(quote["10. change percent"]?.replace("%", "") || "0"),
-                companyName: ticker,
+              const resQuote = data["Global Quote"];
+              
+              const quote: Quote = {
+                ticker: resQuote["01. symbol"],
+                price: parseFloat(resQuote["05. price"]),
+                changePercent: parseFloat(resQuote["10. change percent"]?.replace("%", "") || "0"),
+                companyName: resQuote["01. symbol"],
               };
+              return quote;
             }
             return null;
           } catch (error) {
