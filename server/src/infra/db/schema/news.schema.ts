@@ -2,10 +2,11 @@ import { sql } from "drizzle-orm";
 import { pgTable, varchar, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { stocks } from "./stocks.schema";
 
 export const newsArticles = pgTable("news_articles", {
     id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    ticker: text("ticker").notNull(),
+    ticker: varchar("ticker").notNull().references(() => stocks.ticker),
     source: text("source").notNull(),
     headline: text("headline").notNull(),
     articleUrl: text("article_url").notNull(),

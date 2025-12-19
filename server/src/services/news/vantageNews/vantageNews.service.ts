@@ -11,6 +11,7 @@ export default class VantageNews {
 
     async getNews(): Promise<NewsSummary[]> {
         // TODO: get user stocks from database
+        const stocks = await this.stocksRepository.getStocks();
 
         // if none and in guest mode, use default tickers
 
