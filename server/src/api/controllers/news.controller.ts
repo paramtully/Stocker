@@ -5,8 +5,4 @@ export const newsController = {
         // stub
         return res.json(null);
     },
-    refreshNews: async (req: Request, res: Response) => {
-        // stub
-        return res.json(null);
-    },
 }

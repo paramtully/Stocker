@@ -13,7 +13,7 @@ export async function registerRoutes(app: Express): Promise<void> {
     // set up auth
     await setupAuth(app);
 
-    // Auth Routes
+    // Auth Routes                                         
     app.get("/api/auth/user", authController.getAuthUser);
     app.get("/api/auth/status", authController.getAuthStatus);                         // check if user is authenticated (not guest)
 
@@ -39,12 +39,13 @@ export async function registerRoutes(app: Express): Promise<void> {
     app.get("/api/stocks/:ticker/charts", stocksController.getAllCharts);                // get all periodic chart data for a stock
     app.get("/api/stocks/portfolio/charts", stocksController.getPortfolioCharts);        // get all news for a stock
     app.get("/api/stocks/:ticker/price/:date", stocksController.getPriceForDate);        // get price for a stock on a specific date
+    app.get("/api/stocks/search/:prefix", stocksController.searchStocksByPrefix);        // search NASDAQ tickers by prefix
     app.post("/api/stocks/", stocksController.addStock);                                 // add a stock to the user's portfolio
     app.delete("/api/stocks/:ticker", stocksController.removeStock);                     // remove a stock from the user's portfolio
 
+
     // News Routes
     app.get("/api/news", newsController.getNews);                                      // get paginated news for portfolio stocks (with optional ticker filter)
-    app.post("/api/news/refresh", newsController.refreshNews);                         // refresh news for all portfolio stocks (MIGHT DEPRICATE DEPENDING ON FUNCTIONALITY)
     
     // Portfolio Routes
     app.get("/api/portfolio/overview", portfolioController.getPortfolioOverview);          // get portfolio overivew stats

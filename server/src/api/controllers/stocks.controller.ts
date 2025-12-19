@@ -33,4 +33,8 @@ export const stocksController = {
         // stub
         return res.json(null);
     },
+    searchStocksByPrefix: async (req: Request, res: Response) => {
+        // stub
+        return res.json(null);
+    },
 }
