@@ -25,7 +25,7 @@ export default class UserDrizzleRepository implements UserRepository {
           updatedAt: new Date(),
         },
       }).returning();
-    return user;
+    return this.toDomainUser(user as DbUser);
   }
 
   async createGuestUser(): Promise<User> {
@@ -40,7 +40,7 @@ export default class UserDrizzleRepository implements UserRepository {
         lastName: null,
       })
       .returning();
-    return user;
+    return this.toDomainUser(user);
   }
 
   async updateUserEmailSettings(userId: string, enabled: boolean, deliveryHour: number): Promise<User | null> {
@@ -49,14 +49,16 @@ export default class UserDrizzleRepository implements UserRepository {
       .set({ emailEnabled: enabled, emailDeliveryHour: deliveryHour })
       .where(eq(users.id, userId))
       .returning();
-    return user ? this.toDomainUser(user) : null;
+    return user ? this.toDomainUser(user as DbUser) : null;
   }
 
   async getUsersForEmailAlert(hour: number): Promise<User[]> {
-    return db
+    const dbUsers: DbUser[] = await db
       .select()
       .from(users)
       .where(and(eq(users.emailEnabled, true), eq(users.emailDeliveryHour, hour)));
+      
+      return dbUsers.map(this.toDomainUser);
   }
 
   toDomainUser(dbUser: DbUser): User {

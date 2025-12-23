@@ -4,7 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { stocks } from "./stocks.schema";
 
-export const newsArticles = pgTable("news_articles", {
+export const newsSummaries = pgTable("news_summaries", {
     id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
     ticker: varchar("ticker").notNull().references(() => stocks.ticker),
     source: text("source").notNull(),
@@ -17,11 +17,10 @@ export const newsArticles = pgTable("news_articles", {
     sentiment: text("sentiment"),
     fetchedAt: timestamp("fetched_at").defaultNow(),
 });
-
-export const insertNewsArticleSchema = createInsertSchema(newsArticles).omit({
+export const insertNewsSummarySchema = createInsertSchema(newsSummaries).omit({
     id: true,
     fetchedAt: true,
 });
   
-export type DbInsertNewsArticle = z.infer<typeof insertNewsArticleSchema>;
-export type DbNewsArticle = typeof newsArticles.$inferSelect;
+export type DbInsertNewsSummary = z.infer<typeof insertNewsSummarySchema>;
+export type DbNewsSummary = typeof newsSummaries.$inferSelect;

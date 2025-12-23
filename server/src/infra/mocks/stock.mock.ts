@@ -1,4 +1,4 @@
-import Stock from "@/domain/stock";
+import { Stock } from "server/src/domain/stock";
 
 export const mockStocks: Stock[] = [
     { ticker: "AAPL", companyName: "Apple Inc.", price: 178.52, changePercent: 2.34 },

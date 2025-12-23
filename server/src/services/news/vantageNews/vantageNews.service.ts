@@ -1,23 +1,44 @@
 import { NewsSummary } from "server/src/domain/news";
-
+import StockRepository from "server/src/repositories/interfaces/stock.repository";
+import StockDrizzleRepository from "server/src/repositories/drizzle/stock.drizzle";
+import NewsRepository from "server/src/repositories/interfaces/news.repository";
+import NewsDrizzleRepository from "server/src/repositories/drizzle/news.drizzle.repository";
 
 export default class VantageNews {
     private readonly baseUrl: string = "https://www.alphavantage.co/query";
     private readonly apiKey: string;
+    private readonly stocksRepository: StockRepository;
+    private readonly newsRepository: NewsRepository;
     
     constructor(apiKey: string = process.env.ALPHA_VANTAGE_API_KEY!) {
         this.apiKey = apiKey;
+        this.stocksRepository = new StockDrizzleRepository();
+        this.newsRepository = new NewsDrizzleRepository();
     }
 
-    async getNews(): Promise<NewsSummary[]> {
-        // TODO: get user stocks from database
-        const stocks = await this.stocksRepository.getStocks();
+    async getNewsArticles(ticker: string): Promise<NewsSummary[]> {
+        return await this.newsRepository.getNewsSummaries(ticker);
+    }
 
-        // if none and in guest mode, use default tickers
+    async getLatestNewsSummary(ticker: string): Promise<NewsSummary | null> {
+        return await this.newsRepository.getLatestNewsSummary(ticker);
+    }
 
-        // otherwise, fetch paginated news summaries for each stock
+    async getNewsSummaries(tickers: string[]): Promise<Record<string, NewsSummary[]>> {
+        return await this.newsRepository.getNewsSummariesByTickers(tickers);
+    }
 
-        // return news summaries
-        return [];
+    async fetchAndUpdateNewsSummaries(): Promise<void> {
+        // TODO: fetch news summaries from vantage news api
+        // for each ticker, fetch news summaries
+
+
+
+        const newsSummaries: Record<string, NewsSummary[]> = await this.getNewsSummaries(tickers);
+        for (const ticker of tickers) {
+            const newsSummary = await this.newsRepository.getNewsSummaries(ticker);
+            newsSummaries[ticker] = newsSummary;
+        }
+        return newsSummaries;
     }
 }
