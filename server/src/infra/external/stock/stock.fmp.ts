@@ -2,7 +2,7 @@ import Stock from "server/src/domain/stock/stock";
 import StockExternalService from "./stock.external";
 
 export default class StockFmp implements StockExternalService {
-    private readonly baseUrl: string = process.env.FMP_BASE_URL! || "https://financialmodelingprep.com/api/v3";
+    private readonly baseUrl: string = "https://financialmodelingprep.com/api/v3";
     private readonly apiKey: string = process.env.FMP_API_KEY!;
 
     async getAllStocks(exchange: string = "NASDAQ"): Promise<Stock[]> {

@@ -7,12 +7,12 @@ import { newsSummaries } from "server/src/infra/db/schema/newsSummary.schema";
 
 export default class NewsDrizzleRepository implements NewsRepository {
     async getNewsSummaries(ticker: string): Promise<NewsSummary[]> {
-        const dbNewsSummaries: DbNewsSummary[] = await db.select().from(newsSummaries).where(eq(newsSummaries.ticker, ticker)).orderBy(desc(newsSummaries.publishedAt)).limit(200);
+        const dbNewsSummaries: DbNewsSummary[] = await db.select().from(newsSummaries).where(eq(newsSummaries.ticker, ticker)).orderBy(desc(newsSummaries.publishDate));
         return dbNewsSummaries.map(this.toDomainNewsSummary);
     }
 
     async getLatestNewsSummary(ticker: string): Promise<NewsSummary | null> {
-        const [dbNewsSummary] = await db.select().from(newsSummaries).where(eq(newsSummaries.ticker, ticker)).orderBy(desc(newsSummaries.publishedAt)).limit(1);
+        const [dbNewsSummary] = await db.select().from(newsSummaries).where(eq(newsSummaries.ticker, ticker)).orderBy(desc(newsSummaries.publishDate)).limit(1);
         return dbNewsSummary ? this.toDomainNewsSummary(dbNewsSummary as DbNewsSummary) : null;
     }
 
@@ -35,9 +35,9 @@ export default class NewsDrizzleRepository implements NewsRepository {
     }
 
     async getEarliestArticleDate(tickers: string[]): Promise<Record<string, Date>> {
-        const dbNewsSummaries: DbNewsSummary[] = await db.select().from(newsSummaries).where(inArray(newsSummaries.ticker, tickers)).orderBy(asc(newsSummaries.publishedAt)).limit(1);
+        const dbNewsSummaries: DbNewsSummary[] = await db.select().from(newsSummaries).where(inArray(newsSummaries.ticker, tickers)).orderBy(asc(newsSummaries.publishDate)).limit(1);
         return dbNewsSummaries.reduce((acc, dbNewsSummary) => {
-            acc[dbNewsSummary.ticker] = dbNewsSummary.publishedAt;
+            acc[dbNewsSummary.ticker] = new Date(dbNewsSummary.publishDate);
             return acc;
         }, {} as Record<string, Date>);
     }
@@ -48,7 +48,7 @@ export default class NewsDrizzleRepository implements NewsRepository {
             source: dbNewsSummary.source,
             headline: dbNewsSummary.headline,
             articleUrl: dbNewsSummary.articleUrl,
-            publishedAt: new Date(dbNewsSummary.publishedAt),
+            publishDate: new Date(dbNewsSummary.publishDate),
             summary: dbNewsSummary.summary ?? "",
             impactAnalysis: dbNewsSummary.impactAnalysis ? dbNewsSummary.impactAnalysis.split(",") : [],
             recommendedActions: dbNewsSummary.recommendedActions ? dbNewsSummary.recommendedActions.split(",") : [],
@@ -62,7 +62,7 @@ export default class NewsDrizzleRepository implements NewsRepository {
             source: newsSummary.source,
             headline: newsSummary.headline,
             articleUrl: newsSummary.articleUrl,
-            publishedAt: newsSummary.publishedAt,
+            publishDate: new Date(newsSummary.publishDate).toISOString().split("T")[0], //YYYY-MM-DD
             summary: newsSummary.summary,
             impactAnalysis: newsSummary.impactAnalysis.join(","),
             recommendedActions: newsSummary.recommendedActions.join(","),

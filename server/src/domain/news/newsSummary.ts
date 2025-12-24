@@ -3,7 +3,7 @@ export default interface NewsSummary {
     source: string;
     headline: string;
     articleUrl: string;
-    publishedAt: Date;
+    publishDate: Date;
     summary: string;
     impactAnalysis: string[];
     recommendedActions: string[];

@@ -4,14 +4,15 @@ dotenv.config();
 
 export default class VantageStock {
     private readonly baseUrl: string = "https://www.alphavantage.co/query";
-
+    private readonly apiKey: string;
+    
     constructor(apiKey: string = process.env.ALPHA_VANTAGE_API_KEY!) {
         this.apiKey = apiKey;
     }
 
     async getQuote(ticker: string): Promise<Quote | null> {
         try {
-            const url = `${this.baseUrl}?function=GLOBAL_QUOTE&symbol=${ticker}&apikey=${this.key}`;
+            const url = `${this.baseUrl}?function=GLOBAL_QUOTE&symbol=${ticker}&apikey=${this.apiKey}`;
             const response = await fetch(url);
             const data = await response.json();
       

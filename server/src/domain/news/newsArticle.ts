@@ -4,6 +4,6 @@ export default interface NewsArticle {
     title: string;
     url: string;
     source: string;
-    publishedAt: Date;
+    publishDate: Date;
     summary: string;
 }
