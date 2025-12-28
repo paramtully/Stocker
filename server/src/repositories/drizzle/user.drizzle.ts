@@ -1,19 +1,11 @@
 import { DbUser, users } from "../../infra/db/schema";
 import User from "../../domain/user";
-import UserRepository from "../interfaces/user.repository";
 import { db } from "server/src/infra/db/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, count, gte } from "drizzle-orm";
 import { DbInsertUser } from "server/src/infra/db/schema/users.schema";
+import UsersRepository from "../interfaces/users.repository";
 
-
-export default class UserDrizzleRepository implements UserRepository {
-  async getUserById(id: string): Promise<User | null> {
-
-    const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1);
-
-    return user ? this.toDomainUser(user) : null;
-  }
-
+export default class UsersDrizzleRepository implements UsersRepository {
   async insertUser(userData: DbInsertUser): Promise<User> {
     const [user] = await db
     .insert(users)
@@ -59,6 +51,38 @@ export default class UserDrizzleRepository implements UserRepository {
       .where(and(eq(users.emailEnabled, true), eq(users.emailDeliveryHour, hour)));
       
       return dbUsers.map(this.toDomainUser);
+  }
+
+  async getUserById(id: string): Promise<User | null> {
+    const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return user ? this.toDomainUser(user as DbUser) : null;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    return user ? this.toDomainUser(user as DbUser) : undefined;
+  }
+
+  async setUserAdmin(userId: string, isAdmin: boolean): Promise<User | undefined> {
+    const [user] = await db.update(users).set({ isAdmin }).where(eq(users.id, userId)).returning();
+    return user ? this.toDomainUser(user as DbUser) : undefined;
+  }
+
+  async getSignupsToday(): Promise<number> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const result = await db.select({ count: count() }).from(users).where(gte(users.createdAt, today));
+    return result[0]?.count || 0;
+  }
+
+  async getSignupsTotal(): Promise<number> {
+    const result = await db.select({ count: count() }).from(users);
+    return result[0]?.count || 0;
+  }
+
+  async getTotalUsers(): Promise<number> {
+    const result = await db.select({ count: count() }).from(users);
+    return result[0]?.count || 0;
   }
 
   toDomainUser(dbUser: DbUser): User {

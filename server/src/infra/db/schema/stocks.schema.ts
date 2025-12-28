@@ -5,9 +5,9 @@ import { z } from "zod";
 export const stocks = pgTable("stocks", {
     ticker: text("ticker").primaryKey(),
     companyName: text("company_name").notNull(),
-    cik: text("cik").notNull(),
-    isin: text("isin").notNull(),
-    cusip: text("cusip").notNull(),
+    // cik: text("cik").notNull(),
+    // isin: text("isin").notNull(),
+    // cusip: text("cusip").notNull(),
     marketCap: numeric("market_cap").notNull(),
     industry: text("industry").notNull(),
     exchange: text("exchange").notNull(),

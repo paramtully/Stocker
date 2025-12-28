@@ -2,10 +2,10 @@ import { eq } from "drizzle-orm";
 import NewsHistoryStatus from "server/src/domain/news/newsHistoryStatus";
 import { db } from "server/src/infra/db/db";
 import { DbNewsHistoryStatus, newsHistoryStatuses } from "server/src/infra/db/schema/newsHistoryStatus.schema";
-import NewsHistoryStatusRepository from "server/src/repositories/interfaces/newsHistoryStatus.repository";
+import NewsHistoryStatusesRepository from "server/src/repositories/interfaces/news/newsHistoryStatus.repository";
 
 
-export default class NewsHistoryStatusDrizzleRepository implements NewsHistoryStatusRepository {
+export default class NewsHistoryStatusesDrizzleRepository implements NewsHistoryStatusesRepository {
     async getNewsHistoryStatuses(): Promise<NewsHistoryStatus[]> {
         const dbNewsHistoryStatuses: DbNewsHistoryStatus[] = await db.select().from(newsHistoryStatuses);
         return dbNewsHistoryStatuses.map(this.toDomainNewsHistoryStatus);

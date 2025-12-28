@@ -1,11 +1,11 @@
 import { DbStock } from "server/src/infra/db/schema/stocks.schema";
-import StockRepository from "../interfaces/stock.repository";
+import StocksRepository from "../../interfaces/stock/stocks.repository";
 import { Stock } from "server/src/domain/stock";
 import { db } from "server/src/infra/db/db";
 import { stocks } from "server/src/infra/db/schema/stocks.schema";
 import { eq } from "drizzle-orm";
 
-export default class StockDrizzleRepository implements StockRepository {
+export default class StocksDrizzleRepository implements StocksRepository {
     async getStockByTicker(ticker: string): Promise<Stock | null> {
         const [dbStock] = await db.select().from(stocks).where(eq(stocks.ticker, ticker));
         return dbStock ? this.toDomainStock(dbStock as DbStock) : null;
@@ -34,9 +34,9 @@ export default class StockDrizzleRepository implements StockRepository {
         return {
             ticker: db.ticker,
             companyName: db.companyName,
-            cik: db.cik,
-            isin: db.isin,
-            cusip: db.cusip,
+            // cik: db.cik,
+            // isin: db.isin,
+            // cusip: db.cusip,
             marketCap: parseFloat(db.marketCap),
             industry: db.industry,
             exchange: db.exchange,

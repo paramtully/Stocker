@@ -1,11 +1,11 @@
-import CandleRepository from "../interfaces/candle.repository";
+import CandlesRepository from "../../interfaces/stock/candles.repository";
 import { db } from "server/src/infra/db/db";
 import { candles } from "server/src/infra/db/schema/candle.schema";
 import { eq } from "drizzle-orm";
 import Candle from "server/src/domain/stock/candle";
 import { DbCandle } from "server/src/infra/db/schema/candle.schema";
 
-export default class CandleDrizzleRepository implements CandleRepository {
+export default class CandleDrizzleRepository implements CandlesRepository {
     async getCandlesByTicker(ticker: string): Promise<Candle[]> {
         const dbCandles: DbCandle[] = await db.select().from(candles).where(eq(candles.ticker, ticker));
         return dbCandles.map(this.toDomainCandle);

@@ -1,10 +1,10 @@
 import { Holding } from "server/src/domain/stock";
-import HoldingRepository from "../interfaces/holding.repository";
+import HoldingsRepository from "../../interfaces/stock/holdings.repository";
 import { DbHolding, DbInsertHolding, holdings } from "server/src/infra/db/schema/holdings.schema";
 import { db } from "server/src/infra/db/db";
 import { and, eq } from "drizzle-orm";
 
-export default class HoldingDrizzleRepository implements HoldingRepository {
+export default class HoldingsDrizzleRepository implements HoldingsRepository {
     async getHoldingsByUserId(userId: string): Promise<Holding[]> {
         const dbHoldings: DbHolding[] = await db.select().from(holdings).where(eq(holdings.userId, userId));
         return dbHoldings.map(this.toDomainHolding);

@@ -1,7 +1,7 @@
 import { NewsSummary } from "server/src/domain/news";
-import StockRepository from "server/src/repositories/interfaces/stock.repository";
-import StockDrizzleRepository from "server/src/repositories/drizzle/stock.drizzle";
-import NewsRepository from "server/src/repositories/interfaces/news.repository";
+import StockRepository from "server/src/repositories/interfaces/stock/stocks.repository";
+import StockDrizzleRepository from "server/src/repositories/drizzle/stock/stock.drizzle";
+import NewsRepository from "server/src/repositories/interfaces/news/news.repository";
 import NewsDrizzleRepository from "server/src/repositories/drizzle/news.drizzle.repository";
 
 export default class VantageNews {

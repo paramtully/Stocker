@@ -1,9 +1,9 @@
-import NewsRepository from "../interfaces/news.repository";
 import { NewsSummary, Sentiment } from "server/src/domain/news";
 import { DbInsertNewsSummary, DbNewsSummary } from "server/src/infra/db/schema/newsSummary.schema";
 import { db } from "server/src/infra/db/db";
 import { eq, desc, inArray, asc } from "drizzle-orm";
 import { newsSummaries } from "server/src/infra/db/schema/newsSummary.schema";
+import NewsRepository from "../../interfaces/news/news.repository";
 
 export default class NewsDrizzleRepository implements NewsRepository {
     async getNewsSummaries(ticker: string): Promise<NewsSummary[]> {

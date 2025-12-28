@@ -35,6 +35,9 @@ export default class CandleYfinance implements CandleExternalService {
                 date: new Date(item.Timestamp),
             }));
             results.push(...candle);
+
+            // delay 1800ms to avoid rate limiting (2000 requests per hour)
+            await this.delay(1800);
         }
         return results;
     }
@@ -42,8 +45,10 @@ export default class CandleYfinance implements CandleExternalService {
     async getDailyCandles(tickers: string[]): Promise<Candle[]> {
         const results: Candle[] = [];
         for (const ticker of tickers) {
-            const date = new Date();
-            const candles = await yf.historical(ticker, { period1: date.getTime() / 1000, period2: (date.getTime() + 1) / 1000 });
+            // start at today and end at tomorrow
+            const startDate = new Date().toISOString().split("T")[0];
+            const endDate = new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split("T")[0];
+            const candles = await yf.historical(ticker, { period1: startDate, period2: endDate });
             const candle: Candle[] = candles
             .map((item: HistoricalRowHistory) => ({
                 ticker,
@@ -55,6 +60,9 @@ export default class CandleYfinance implements CandleExternalService {
                 date: new Date(item.timestamp as number),
             }));
             results.push(...candle);
+
+            // delay 1800ms to avoid rate limiting (2000 requests per hour)
+            await this.delay(1800);
         }
         return results;
     }
@@ -62,7 +70,7 @@ export default class CandleYfinance implements CandleExternalService {
     async getRangeCandles(tickers: string[], startDate: Date, endDate: Date): Promise<Candle[]> {
         const results: Candle[] = [];
         for (const ticker of tickers) {
-            const candles = await yf.historical(ticker, { period1: startDate.getTime() / 1000, period2: endDate.getTime() / 1000 });
+            const candles = await yf.historical(ticker, { period1: startDate.toISOString().split("T")[0], period2: endDate.toISOString().split("T")[0] });
             const candle: Candle[] = candles
             .map((item: HistoricalRowHistory) => ({
                 ticker,
@@ -74,7 +82,14 @@ export default class CandleYfinance implements CandleExternalService {
                 date: new Date(item.timestamp as number),
             }));
             results.push(...candle);
+
+            // delay 1800ms to avoid rate limiting (2000 requests per hour)
+            await this.delay(1800);
         }
         return results;
+    }
+
+    private delay(ms: number): Promise<void> {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 }
