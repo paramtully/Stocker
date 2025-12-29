@@ -1,19 +1,23 @@
 import CandlesRepository from "../../interfaces/stock/candles.repository";
 import { db } from "server/src/infra/db/db";
 import { candles } from "server/src/infra/db/schema/candle.schema";
-import { eq } from "drizzle-orm";
+import { inArray, desc } from "drizzle-orm";
 import Candle from "server/src/domain/stock/candle";
 import { DbCandle } from "server/src/infra/db/schema/candle.schema";
 
 export default class CandleDrizzleRepository implements CandlesRepository {
-    async getCandlesByTicker(ticker: string): Promise<Candle[]> {
-        const dbCandles: DbCandle[] = await db.select().from(candles).where(eq(candles.ticker, ticker));
-        return dbCandles.map(this.toDomainCandle);
+    async getCandlesByTickers(tickers: string[]): Promise<Record<string, Candle[]>> {
+        const dbCandles: DbCandle[] = await db.select().from(candles).where(inArray(candles.ticker, tickers)).orderBy(desc(candles.date));
+        return dbCandles.reduce((acc, dbCandle) => {
+            acc[dbCandle.ticker] = [...(acc[dbCandle.ticker] || []), this.toDomainCandle(dbCandle)];
+            return acc;
+        }, {} as Record<string, Candle[]>);
     }
 
     async insertCandles(candlesToInsert: Candle[]): Promise<void> {
         await db.insert(candles).values(candlesToInsert.map(this.toDbCandle));
     }
+
 
     toDomainCandle(db: DbCandle): Candle {
         return {

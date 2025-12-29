@@ -1,4 +1,4 @@
-import { Holding } from "server/src/domain/stock";
+import { type Holding } from "server/src/domain/portfolio";
 import { DbHolding, DbInsertHolding } from "server/src/infra/db/schema/holdings.schema";
 
 export default interface HoldingsRepository {

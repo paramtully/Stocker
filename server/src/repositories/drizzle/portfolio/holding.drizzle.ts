@@ -1,5 +1,5 @@
-import { Holding } from "server/src/domain/stock";
-import HoldingsRepository from "../../interfaces/stock/holdings.repository";
+import { Holding } from "server/src/domain/portfolio";
+import HoldingsRepository from "../../interfaces/portfolio/holdings.repository";
 import { DbHolding, DbInsertHolding, holdings } from "server/src/infra/db/schema/holdings.schema";
 import { db } from "server/src/infra/db/db";
 import { and, eq } from "drizzle-orm";

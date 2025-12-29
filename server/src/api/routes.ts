@@ -17,45 +17,60 @@ export async function registerRoutes(app: Express): Promise<void> {
     app.get("/api/auth/user", authController.getAuthUser);
     app.get("/api/auth/status", authController.getAuthStatus);                                      // check if user is authenticated (not guest)
 
-    // Stocks Routes
-    app.get("/api/stocks", authController.ensureUserIsAuthenticated, stocksController.getStocks);   // get all stocks for the user
-    app.get("/api/stocks/:ticker/quote", stocksController.getStockQuote)                            // get object containing:
-    /* 
-                                                                            {
-                                                                                ticker: string;        // Stock symbol (e.g., "AAPL")
-                                                                                companyName: string;   // Company name (e.g., "Apple Inc.")
-                                                                                price: number;         // Current stock price
-                                                                                changePercent: number; // Percentage change (positive or negative)
-                                                                            }
-                                                                            example: 
-                                                                            {
-                                                                            "ticker": "AAPL",
-                                                                            "companyName": "Apple Inc.",
-                                                                            "price": 178.52,
-                                                                            "changePercent": 2.34
-                                                                            }
-    */
-    app.get("/api/stocks/:ticker/chart", stocksController.getChart);                                // get chart data for the stock
-    app.get("/api/stocks/:ticker/charts", stocksController.getAllCharts);                           // get all periodic chart data for a stock
-    app.get("/api/stocks/portfolio/charts", stocksController.getPortfolioCharts);                   // get all news for a stock
-    app.get("/api/stocks/:ticker/price/:date", stocksController.getPriceForDate);                   // get price for a stock on a specific date
-    app.get("/api/stocks/search/:prefix", stocksController.searchStocksByPrefix);                   // search NASDAQ tickers by prefix
-    app.post("/api/stocks/", stocksController.addStock);                                            // add a stock to the user's portfolio
-    app.delete("/api/stocks/:ticker", stocksController.removeStock);                                // remove a stock from the user's portfolio
+    // // Stocks Routes (get general stock data)
+    // app.get("/api/stocks", authController.ensureUserIsAuthenticated, stocksController.getUserHoldings);   // get all stocks (holdings) for the user
+    // app.get("/api/stocks/quotes", stocksController.getUserQuotes);                                 // get quotes for each stock in the user's portfolio -> obj format as below:
+    // /* 
+    //                                                                         {
+    //                                                                             ticker: string;        // Stock symbol (e.g., "AAPL")
+    //                                                                             companyName: string;   // Company name (e.g., "Apple Inc.")
+    //                                                                             price: number;         // Current stock price
+    //                                                                             changePercent: number; // Percentage change (positive or negative)
+    //                                                                         }
+    //                                                                         example: 
+    //                                                                         {
+    //                                                                         "ticker": "AAPL",
+    //                                                                         "companyName": "Apple Inc.",
+    //                                                                         "price": 178.52,
+    //                                                                         "changePercent": 2.34
+    //                                                                         }
+    // */
+    // // app.get("/api/stocks/:ticker/chart", stocksController.getChart);                                // get chart data for the stock
+    // // app.get("/api/stocks/:ticker/charts", stocksController.getAllCharts);                           // get all periodic chart data for a stock
+    // // app.get("/api/stocks/:ticker/price/:date", stocksController.getPriceForDate);                   // get price for a stock on a specific date
+    // app.get("/api/stocks/search/", stocksController.searchStocksByPrefix);                              // search NASDAQ tickers by prefix
+    // app.post("/api/stocks/", stocksController.addUserHolding);                                    // add a stock to the user's portfolio
+    // app.delete("/api/stocks/:ticker", stocksController.removeUserHolding);                      // remove a stock from the user's portfolio
 
+
+    // // News Routes
+    // app.get("/api/news", newsController.getUserNews);                                                   // get paginated news for portfolio stocks (with optional ticker filter)
+    
+    // // Portfolio Routes
+    // app.get("/api/portfolio/overview", portfolioController.getPortfolioOverview);                   // get portfolio overivew stats
+    // app.get("/api/portfolio/charts", portfolioController.getPortfolioCharts);                       // get portfolio charts
+
+    // Stocks Routes (general stock data - not user-specific)
+    app.get("/api/stocks/search", stocksController.searchStocksByPrefix);  // search NASDAQ tickers by prefix
+    // Future: app.get("/api/stocks/:ticker", stocksController.getStockInfo); // get general stock info
+
+    // Portfolio Routes (user's holdings/portfolio)
+    app.get("/api/portfolio", authController.ensureUserIsAuthenticated, stocksController.getUserHoldings);  // get all holdings in user's portfolio
+    app.get("/api/portfolio/quotes", stocksController.getUserQuotes);  // get quotes for each stock in portfolio
+    app.post("/api/portfolio", stocksController.addUserHolding);  // add a stock to portfolio
+    app.delete("/api/portfolio/:ticker", stocksController.removeUserHolding);  // remove a stock from portfolio
+    app.get("/api/portfolio/overview", portfolioController.getPortfolioOverview);  // get portfolio overview stats
+    app.get("/api/portfolio/charts", portfolioController.getPortfolioCharts);  // get portfolio charts
 
     // News Routes
-    app.get("/api/news", newsController.getNews);                                                   // get paginated news for portfolio stocks (with optional ticker filter)
-    
-    // Portfolio Routes
-    app.get("/api/portfolio/overview", portfolioController.getPortfolioOverview);                   // get portfolio overivew stats
+    app.get("/api/news", newsController.getUserNews);  // get paginated news for portfolio stocks
 
     // Settings Routes
     app.get("/api/settings/email", settingsController.getEmailSettings);                            // get email settings (verify, resend, test)
     app.put("/api/settings/email", settingsController.updateEmailSettings);                         // update email settings    
     
     // Email Routes
-    app.post("/api/email/test", emailController.testEmail);                                         // sent email (testing)
+    // app.post("/api/email/test", emailController.testEmail);                                         // sent email (testing)
     app.post("/api/email/", emailController.sendEmail);                                             // send email
 
     // Tracking Routes
