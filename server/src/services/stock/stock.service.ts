@@ -10,6 +10,6 @@ export default class StockService implements IStockService {
     }
 
     async searchTickersByPrefix(prefix: string): Promise<string[]> {
-        return await this.stockRepository.getStocks().then(stocks => stocks.filter(stock => stock.ticker.startsWith(prefix)).map(stock => stock.ticker));
+        return (await this.stockRepository.getStocksByPrefix(prefix, 10)).map(stock => stock.ticker);
     }
 }

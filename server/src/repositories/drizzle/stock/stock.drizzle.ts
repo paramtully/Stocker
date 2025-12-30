@@ -3,7 +3,7 @@ import StocksRepository from "../../interfaces/stock/stocks.repository";
 import { Stock } from "server/src/domain/stock";
 import { db } from "server/src/infra/db/db";
 import { stocks } from "server/src/infra/db/schema/stocks.schema";
-import { eq } from "drizzle-orm";
+import { eq, like } from "drizzle-orm";
 
 export default class StocksDrizzleRepository implements StocksRepository {
     async getStockByTicker(ticker: string): Promise<Stock | null> {
@@ -13,6 +13,11 @@ export default class StocksDrizzleRepository implements StocksRepository {
 
     async getStocks(): Promise<Stock[]> {
         const dbStocks: DbStock[] = await db.select().from(stocks);
+        return dbStocks.map(this.toDomainStock);
+    }
+
+    async getStocksByPrefix(prefix: string, limit: number = 10): Promise<Stock[]> {
+        const dbStocks: DbStock[] = await db.select().from(stocks).where(like(stocks.ticker, `${prefix}%`)).limit(limit);
         return dbStocks.map(this.toDomainStock);
     }
 

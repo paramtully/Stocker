@@ -1,40 +1,17 @@
 import { Request, Response } from "express";
+import StockService from "server/src/services/stock/stock.service";
 
 export const stocksController = {
-    getStocks: async (req: Request, res: Response) => {
-        // stub
-        return res.json(null);
-    },
-    getStockQuote: async (req: Request, res: Response) => {
-        // stub
-        return res.json(null);
-    },
-    getChart: async (req: Request, res: Response) => {
-        // stub
-        return res.json(null);
-    },
-    getAllCharts: async (req: Request, res: Response) => {
-        // stub
-        return res.json(null);
-    },
-    getPortfolioCharts: async (req: Request, res: Response) => {
-        // stub
-        return res.json(null);
-    },
-    getPriceForDate: async (req: Request, res: Response) => {
-        // stub
-        return res.json(null);
-    },
-    addStock: async (req: Request, res: Response) => {
-        // stub
-        return res.json(null);
-    },
-    removeStock: async (req: Request, res: Response) => {
-        // stub
-        return res.json(null);
-    },
     searchStocksByPrefix: async (req: Request, res: Response) => {
-        // stub
-        return res.json(null);
+        try {
+            const prefix = (req.query.q as string) || "";
+            // const results = tickerDataService.search(query, 10);
+            const stockService = new StockService();
+            const results = await stockService.searchTickersByPrefix(prefix);
+            res.json(results);
+          } catch (error) {
+            console.error("Error searching tickers:", error);
+            res.status(500).json({ error: "Failed to search tickers" });
+          }
     },
 }

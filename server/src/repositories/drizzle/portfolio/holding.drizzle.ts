@@ -5,27 +5,37 @@ import { db } from "server/src/infra/db/db";
 import { and, eq } from "drizzle-orm";
 
 export default class HoldingsDrizzleRepository implements HoldingsRepository {
-    async getHoldingsByUserId(userId: string): Promise<Holding[]> {
+
+    async getUserHoldings(userId: string): Promise<Holding[]> {
         const dbHoldings: DbHolding[] = await db.select().from(holdings).where(eq(holdings.userId, userId));
         return dbHoldings.map(this.toDomainHolding);
     }
 
-    async insertHolding(holding: DbInsertHolding): Promise<Holding> {
-        const [dbHolding] = await db.insert(holdings).values(holding).returning();
-        return this.toDomainHolding(dbHolding);
+    async insertHolding(holding: Holding): Promise<void> {
+        await db.insert(holdings).values(this.toDbInsertHolding(holding));
     }
 
     async deleteHolding(userId: string, ticker: string): Promise<void> {
         await db.delete(holdings).where(and(eq(holdings.userId, userId), eq(holdings.ticker, ticker)));
     }
 
-    toDomainHolding(db: DbHolding): Holding {
+    toDomainHolding(dbHolding: DbHolding): Holding {
         return {
-            userId: db.userId,
-            ticker: db.ticker,
-            shares: db.shares,
-            purchasePrice: parseFloat(db.purchasePrice),
-            purchaseDate: new Date(db.purchaseDate),
+            userId: dbHolding.userId,
+            ticker: dbHolding.ticker,
+            shares: dbHolding.shares,
+            purchasePrice: parseFloat(dbHolding.purchasePrice),
+            purchaseDate: new Date(dbHolding.purchaseDate),
+        };
+    }
+
+    toDbInsertHolding(holding: Holding): DbInsertHolding {
+        return {
+            userId: holding.userId,
+            ticker: holding.ticker,
+            shares: holding.shares,
+            purchasePrice: holding.purchasePrice.toString(),
+            purchaseDate: holding.purchaseDate.toISOString().split("T")[0], // Convert Date to 'YYYY-MM-DD' string
         };
     }
 }

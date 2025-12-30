@@ -12,7 +12,7 @@ export const holdings = pgTable("holdings", {
     shares: integer("shares").notNull(),
     purchasePrice: numeric("purchase_price", { precision: 10, scale: 2 }).notNull(),
     purchaseDate: date("purchase_date").notNull(),
-    addedAt: timestamp("added_at").defaultNow(),
+    addedAt: timestamp("added_at").defaultNow().notNull(),
 }, (table) => [
     primaryKey({ columns: [table.userId, table.ticker] }),
     check("purchase_price_positive", sql`${table.purchasePrice} >= 0`),
@@ -21,15 +21,15 @@ export const holdings = pgTable("holdings", {
 ]);
 
 // Zod validation - for better API error messages
-export const insertHoldingSchema = createInsertSchema(holdings).extend({
+export const insertHoldingSchema = createInsertSchema(holdings)
+.omit({
+    addedAt: true,
+}).extend({
     purchasePrice: z.string().refine((val) => {
         const num = parseFloat(val);
         return !isNaN(num) && num >= 0;
     }, { message: "Purchase price must be greater than or equal to 0" }),
-    shares: z.string().refine((val) => {
-        const num = parseInt(val);
-        return !isNaN(num) && num > 0;
-    }, { message: "Shares must be greater than 0" }),
+    shares: z.number().int().positive({ message: "Shares must be greater than 0" }),
     purchaseDate: z.string().refine((val) => {
         const date = new Date(val);
         return !isNaN(date.getTime()) && date <= new Date();

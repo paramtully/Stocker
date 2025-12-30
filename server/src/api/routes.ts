@@ -55,10 +55,10 @@ export async function registerRoutes(app: Express): Promise<void> {
     // Future: app.get("/api/stocks/:ticker", stocksController.getStockInfo); // get general stock info
 
     // Portfolio Routes (user's holdings/portfolio)
-    app.get("/api/portfolio", authController.ensureUserIsAuthenticated, stocksController.getUserHoldings);  // get all holdings in user's portfolio
-    app.get("/api/portfolio/quotes", stocksController.getUserQuotes);  // get quotes for each stock in portfolio
-    app.post("/api/portfolio", stocksController.addUserHolding);  // add a stock to portfolio
-    app.delete("/api/portfolio/:ticker", stocksController.removeUserHolding);  // remove a stock from portfolio
+    app.get("/api/portfolio", authController.ensureUserIsAuthenticated, portfolioController.getUserHoldings);  // get all holdings in user's portfolio
+    app.get("/api/portfolio/quotes", portfolioController.getUserQuotes);  // get quotes for each stock in portfolio
+    app.post("/api/portfolio", portfolioController.addUserHolding);  // add a stock to portfolio
+    app.delete("/api/portfolio/:ticker", portfolioController.removeUserHolding);  // remove a stock from portfolio
     app.get("/api/portfolio/overview", portfolioController.getPortfolioOverview);  // get portfolio overview stats
     app.get("/api/portfolio/charts", portfolioController.getPortfolioCharts);  // get portfolio charts
 
