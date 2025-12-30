@@ -6,6 +6,7 @@ export default interface UsersRepository {
     getUserById(id: string): Promise<User | null>;
     insertUser(user: DbInsertUser): Promise<User>;
     createGuestUser(): Promise<User>;
+    getRegisteredUsers(): Promise<User[]>;
     updateUserEmailSettings(userId: string, enabled: boolean, deliveryHour: number): Promise<User | null>;
     getUsersForEmailAlert(hour: number): Promise<User[]>;
     

@@ -2,7 +2,7 @@ import NewsExternalService from "./news.external";
 import NewsArticle from "server/src/domain/news/newsArticle";
 import { NewsHistoryStatus } from "server/src/domain/news";
 import NewsRepository from "server/src/repositories/interfaces/news/news.repository";
-import NewsDrizzleRepository from "server/src/repositories/drizzle/news.drizzle.repository";
+import NewsDrizzleRepository from "server/src/repositories/drizzle/news/news.drizzle.repository";
 import NewsHistoryStatusRepository from "server/src/repositories/interfaces/news/newsHistoryStatus.repository";
 import NewsHistoryStatusDrizzleRepository from "server/src/repositories/drizzle/news/newsHistoryStatus.drizzle";
 
@@ -61,7 +61,7 @@ export default class NewsAlphaVantage implements NewsExternalService {
                     title: item.title,
                     url: item.url,
                     source: item.source,
-                    publishedAt: new Date(item.time_published),
+                    publishDate: new Date(item.time_published),
                     summary: item.summary,
                 });
             }
@@ -115,7 +115,7 @@ export default class NewsAlphaVantage implements NewsExternalService {
                     title: item.title,
                     url: item.url,
                     source: item.source,
-                    publishedAt: new Date(item.time_published),
+                    publishDate: new Date(item.time_published),
                     summary: item.summary,
                 });
             }

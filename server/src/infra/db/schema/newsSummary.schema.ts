@@ -1,11 +1,10 @@
-import { sql } from "drizzle-orm";
 import { pgTable, varchar, text, timestamp, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { stocks } from "./stocks.schema";
+import { primaryKey } from "drizzle-orm/pg-core";
 
 export const newsSummaries = pgTable("news_summaries", {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
     ticker: varchar("ticker").notNull().references(() => stocks.ticker),
     source: text("source").notNull(),
     headline: text("headline").notNull(),
@@ -16,7 +15,10 @@ export const newsSummaries = pgTable("news_summaries", {
     recommendedActions: text("recommended_actions"),
     sentiment: text("sentiment"),
     fetchedAt: timestamp("fetched_at").defaultNow(),
-});
+}, (table) => [
+    primaryKey({ columns: [table.ticker, table.publishDate, table.source] }),
+]);
+
 export const insertNewsSummarySchema = createInsertSchema(newsSummaries).omit({
     id: true,
     fetchedAt: true,

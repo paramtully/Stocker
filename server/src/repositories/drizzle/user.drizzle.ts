@@ -35,6 +35,11 @@ export default class UsersDrizzleRepository implements UsersRepository {
     return this.toDomainUser(user);
   }
 
+  async getRegisteredUsers(): Promise<User[]> {
+    const dbUsers: DbUser[] = await db.select().from(users).where(eq(users.isGuest, false));
+    return dbUsers.map(this.toDomainUser);
+  }
+
   async updateUserEmailSettings(userId: string, enabled: boolean, deliveryHour: number): Promise<User | null> {
     const [user] = await db
       .update(users)
@@ -45,10 +50,11 @@ export default class UsersDrizzleRepository implements UsersRepository {
   }
 
   async getUsersForEmailAlert(hour: number): Promise<User[]> {
+    // get users who have email enabled and delivery hour matches and are not guests
     const dbUsers: DbUser[] = await db
       .select()
       .from(users)
-      .where(and(eq(users.emailEnabled, true), eq(users.emailDeliveryHour, hour)));
+      .where(and(eq(users.emailEnabled, true), eq(users.emailDeliveryHour, hour), eq(users.isGuest, false))); 
       
       return dbUsers.map(this.toDomainUser);
   }

@@ -1,7 +1,7 @@
 import { NewsSummary, Sentiment } from "server/src/domain/news";
 import { DbInsertNewsSummary, DbNewsSummary } from "server/src/infra/db/schema/newsSummary.schema";
 import { db } from "server/src/infra/db/db";
-import { eq, desc, inArray, asc } from "drizzle-orm";
+import { eq, desc, inArray, asc, and } from "drizzle-orm";
 import { newsSummaries } from "server/src/infra/db/schema/newsSummary.schema";
 import NewsRepository from "../../interfaces/news/news.repository";
 
@@ -22,7 +22,19 @@ export default class NewsDrizzleRepository implements NewsRepository {
     }
 
     async getNewsSummariesByTickers(tickers: string[]): Promise<Record<string, NewsSummary[]>> {
-        const dbNewsSummaries: DbNewsSummary[] = await db.select().from(newsSummaries).where(inArray(newsSummaries.ticker, tickers));
+        const dbNewsSummaries: DbNewsSummary[] = await db.select().from(newsSummaries).where(inArray(newsSummaries.ticker, tickers)).limit(50);
+        return dbNewsSummaries.reduce((acc, dbNewsSummary) => {
+            acc[dbNewsSummary.ticker] = [...(acc[dbNewsSummary.ticker] || []), this.toDomainNewsSummary(dbNewsSummary)];
+            return acc;
+        }, {} as Record<string, NewsSummary[]>);
+    }
+
+    async getTodaysNewsSummariesByTickers(tickers: string[]): Promise<Record<string, NewsSummary[]>> {
+        const dbNewsSummaries: DbNewsSummary[] = await db.select()
+        .from(newsSummaries)
+        .where(and(
+            inArray(newsSummaries.ticker, tickers), 
+            eq(newsSummaries.publishDate, new Date().toISOString().split("T")[0])));
         return dbNewsSummaries.reduce((acc, dbNewsSummary) => {
             acc[dbNewsSummary.ticker] = [...(acc[dbNewsSummary.ticker] || []), this.toDomainNewsSummary(dbNewsSummary)];
             return acc;
@@ -40,6 +52,11 @@ export default class NewsDrizzleRepository implements NewsRepository {
             acc[dbNewsSummary.ticker] = new Date(dbNewsSummary.publishDate);
             return acc;
         }, {} as Record<string, Date>);
+    }
+
+    async getDateofLatestNewsSummary(): Promise<Date> {
+        const [dbNewsSummary] = await db.select().from(newsSummaries).orderBy(desc(newsSummaries.publishDate)).limit(1);
+        return dbNewsSummary ? new Date(dbNewsSummary.publishDate) : new Date(0);
     }
 
     toDomainNewsSummary(dbNewsSummary: DbInsertNewsSummary): NewsSummary {

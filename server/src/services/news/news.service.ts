@@ -7,15 +7,19 @@ import { HoldingsRepository } from "server/src/repositories/interfaces/portfolio
 import INewsService from "./INews.service";
 import LlmExternalService from "server/src/infra/external/llm/llm.external";
 import LlmOpenAI from "server/src/infra/external/llm/llm.openAI";
+import { PortfolioService, IPortfolioService } from "../portfolio/";
+import Quote from "server/src/domain/stock/quote";
 
 export default class NewsService implements INewsService {
     private readonly newsRepository: NewsRepository;
     private readonly holdingsRepository: HoldingsRepository;
     private readonly llmExternalService: LlmExternalService;
-
+    private readonly portfolioService: IPortfolioService;
+    
     constructor() {
         this.newsRepository = new NewsDrizzleRepository();
         this.holdingsRepository = new HoldingsDrizzleRepository();
+        this.portfolioService = new PortfolioService();
         this.llmExternalService = new LlmOpenAI(process.env.OPENAI_API_KEY!);
     }
 
@@ -61,5 +65,35 @@ Respond in JSON format:
         }));
 
         await this.newsRepository.insertNewsSummary(newsSummaries);
+    }
+
+    async summarizeUserNews(userId: string): Promise<string> {
+        const userHoldings = await this.holdingsRepository.getUserHoldings(userId);
+        const quotes: Quote[] = await this.portfolioService.getUserQuotes(userId);
+        const tickers = userHoldings.map((holding: Holding) => holding.ticker);
+        const newsSummaries: Record<string, NewsSummary[]> = await this.newsRepository.getTodaysNewsSummariesByTickers(tickers);
+        const flattenedNewsSummaries: NewsSummary[] = Object.values(newsSummaries).flat();
+
+        const systemPrompt: string = `You are a financial analyst writing a daily email summary for an investor. 
+Write a concise, professional email that summarizes:
+1. Portfolio overview with key movers
+2. Important news highlights
+3. Key takeaways and things to watch
+
+Keep it under 500 words. Use a friendly but professional tone.
+
+Respond in JSON format:
+{
+"dailyEmailSummary": "string",
+}`
+        const userPrompt: string = `Generate a daily email summary for this portfolio:
+Portfolio:
+${quotes.map(q => `- ${q.ticker} (${q.companyName}): $${q.price.toFixed(2)} (${q.changePercent >= 0 ? '+' : ''}${q.changePercent.toFixed(2)}%)`).join('\n')}
+
+Recent News:
+${flattenedNewsSummaries.map(n => `- [${n.ticker}] ${n.headline} (${n.sentiment})`).join('\n')}`
+
+        const summary = await this.llmExternalService.generateText(systemPrompt, userPrompt);
+        return JSON.parse(summary).dailyEmailSummary as string || '';
     }
 }
