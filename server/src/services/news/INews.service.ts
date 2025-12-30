@@ -1,5 +1,6 @@
-import { type NewsSummary } from "server/src/domain/news";
+import { NewsArticle, type NewsSummary } from "server/src/domain/news";
 
 export default interface NewsService {
-    getNewsArticles(userId: string): Promise<NewsSummary[]>;
+    getNewsSummaries(userId: string): Promise<NewsSummary[]>;
+    addNewsSummary(newsArticles: NewsArticle[]): Promise<void>;
 }

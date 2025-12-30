@@ -29,9 +29,9 @@ export default class NewsDrizzleRepository implements NewsRepository {
         }, {} as Record<string, NewsSummary[]>);
     }
 
-    async insertNewsSummary(newsSummary: DbInsertNewsSummary): Promise<NewsSummary> {
-        const [dbNewsSummary] = await db.insert(newsSummaries).values(newsSummary).returning();
-        return this.toDomainNewsSummary(dbNewsSummary as DbInsertNewsSummary);
+    async insertNewsSummary(news: NewsSummary[]): Promise<void> {
+        const dbNewsSummaries: DbInsertNewsSummary[] = news.map(this.toDbInsertNewsSummary);
+        await db.insert(newsSummaries).values(dbNewsSummaries);
     }
 
     async getEarliestArticleDate(tickers: string[]): Promise<Record<string, Date>> {

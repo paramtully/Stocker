@@ -69,9 +69,17 @@ export default class PortfolioService implements IPortfolioService {
     }
 
     async addUserHolding(userId: string, ticker: string, shares: number, purchaseDate: Date , purchasePrice?: number): Promise<void> {
+        
         if (!purchasePrice) {
             purchasePrice = (await this.candlesRepository.getCandleByTickerAndDate(ticker, purchaseDate))?.close || 0;
         }
+
+        // if ticker is not in the database, throw an error
+        const stock: Stock | null = await this.stocksRepository.getStockByTicker(ticker);
+        if (!stock) {
+            throw new Error("Ticker not found or date is in the future");
+        }
+
         const holding: Holding = {
             userId: userId,
             ticker: ticker,

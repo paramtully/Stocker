@@ -5,7 +5,10 @@ export default class LlmOpenAI implements LlmExternalService {
     private client: OpenAI;
     private model: string = "gpt-4o";
 
-    constructor(apiKey: string) {
+    constructor(apiKey: string = process.env.OPENAI_API_KEY!) {
+        if (!apiKey) {
+            throw new Error("OPENAI_API_KEY is not set");
+        }
         this.client = new OpenAI({
             apiKey: apiKey,
         });
