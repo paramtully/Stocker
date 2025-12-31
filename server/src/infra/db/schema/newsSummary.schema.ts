@@ -8,7 +8,7 @@ export const newsSummaries = pgTable("news_summaries", {
     ticker: varchar("ticker").notNull().references(() => stocks.ticker),
     source: text("source").notNull(),
     headline: text("headline").notNull(),
-    articleUrl: text("article_url").notNull(),
+    articleUrl: text("article_url"),
     publishDate: date("publish_date").notNull(),
     summary: text("summary"),
     impactAnalysis: text("impact_analysis"),
@@ -16,7 +16,7 @@ export const newsSummaries = pgTable("news_summaries", {
     sentiment: text("sentiment"),
     fetchedAt: timestamp("fetched_at").defaultNow(),
 }, (table) => [
-    primaryKey({ columns: [table.ticker, table.publishDate, table.source] }),
+    primaryKey({ columns: [table.articleUrl] }),
 ]);
 
 export const insertNewsSummarySchema = createInsertSchema(newsSummaries).omit({
