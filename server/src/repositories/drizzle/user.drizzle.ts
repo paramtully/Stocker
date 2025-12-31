@@ -6,15 +6,25 @@ import { DbInsertUser } from "server/src/infra/db/schema/users.schema";
 import UsersRepository from "../interfaces/users.repository";
 
 export default class UsersDrizzleRepository implements UsersRepository {
-  async insertUser(userData: DbInsertUser): Promise<User> {
+  async insertUser(userData: User, cognitoSub?: string): Promise<User> {
+    const dbUser: DbInsertUser = {
+      cognitoSub: cognitoSub ?? null,
+      email: userData.email ?? null,
+      firstName: userData.name?.first ?? null,
+      lastName: userData.name?.last ?? null,
+      emailEnabled: userData.emailPreferences.enabled,
+      emailDeliveryHour: userData.emailPreferences.deliveryHour,
+      isGuest: userData.role === "guest",
+      isAdmin: userData.role === "admin",
+    };
     const [user] = await db
     .insert(users)
-    .values(userData)
+    .values(dbUser)
     .onConflictDoUpdate({
         target: users.id,
         set: {
           ...userData,
-          updatedAt: new Date(),
+          cognitoSub: cognitoSub ?? null,
         },
       }).returning();
     return this.toDomainUser(user as DbUser);

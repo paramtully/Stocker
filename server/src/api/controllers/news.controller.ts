@@ -20,4 +20,5 @@ export const newsController = {
             res.status(500).json({ error: "Failed to get user news" });
         }
     },
+    
 }
