@@ -3,18 +3,15 @@ import IAdminService from "./IAdmin.service";
 import UsersDrizzleRepository from "server/src/repositories/drizzle/user.drizzle";
 import AdminMetrics from "server/src/domain/metrics/adminMetrics";
 import PageViewsRepository from "server/src/repositories/interfaces/metrics/pageViews.repository";
-import DailyMetricsRepository from "server/src/repositories/interfaces/metrics/dailyMetrics.repository";
-import { DailyMetricsDrizzleRepository, PageViewsDrizzleRepository } from "server/src/repositories/drizzle/metrics";
+import { PageViewsDrizzleRepository } from "server/src/repositories/drizzle/metrics";
 
 export default class AdminService implements IAdminService {
     private readonly usersRepository: UsersRepository;
     private readonly pageViewsRepository: PageViewsRepository;
-    private readonly dailyMetricsRepository: DailyMetricsRepository;
 
     constructor() {
         this.usersRepository = new UsersDrizzleRepository();
-        this.pageViewsRepository = new PageViewsDrizzleRepository();
-        this.dailyMetricsRepository = new DailyMetricsDrizzleRepository();
+        this.pageViewsRepository = new PageViewsDrizzleRepository();    
     }
 
     async checkAdmin(userId: string): Promise<boolean> {

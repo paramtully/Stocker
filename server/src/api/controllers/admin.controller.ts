@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { AdminService, IAdminService } from "server/src/services/admin";
+import getUserId from "../shared/getUser";
 
 const adminService: IAdminService = new AdminService();
 

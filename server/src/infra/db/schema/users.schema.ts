@@ -13,7 +13,6 @@ export const users = pgTable("users", {
     emailEnabled: boolean("email_enabled").default(true),
     emailDeliveryHour: integer("email_delivery_hour").default(8),
     isGuest: boolean("is_guest").default(false),
-    isAdmin: boolean("is_admin").default(false),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [

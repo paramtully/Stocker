@@ -1,10 +1,11 @@
 import User from "server/src/domain/user";
-import { DbUser } from "server/src/infra/db/schema/users.schema";
+import { DbInsertUser, DbUser } from "server/src/infra/db/schema/users.schema";
 
 export default interface UsersRepository {
     // Existing methods...
     getUserById(id: string): Promise<User | null>;
-    insertUser(user: User, cognitoSub?: string): Promise<User>;
+    getUserByCognitoSub(cognitoSub: string): Promise<User | undefined>;
+    insertUser(user: User): Promise<User>;
     createGuestUser(): Promise<User>;
     getRegisteredUsers(): Promise<User[]>;
     updateUserEmailSettings(userId: string, enabled: boolean, deliveryHour: number): Promise<User | null>;
@@ -19,4 +20,5 @@ export default interface UsersRepository {
     
     // Mapper
     toDomainUser(db: DbUser): User;
+    toDbInsertUser(domainUser: User): DbInsertUser;
 }

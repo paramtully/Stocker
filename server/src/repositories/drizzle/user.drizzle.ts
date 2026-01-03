@@ -6,9 +6,9 @@ import { DbInsertUser } from "server/src/infra/db/schema/users.schema";
 import UsersRepository from "../interfaces/users.repository";
 
 export default class UsersDrizzleRepository implements UsersRepository {
-  async insertUser(userData: User, cognitoSub?: string): Promise<User> {
+  async insertUser(userData: User): Promise<User> {
     const dbUser: DbInsertUser = {
-      cognitoSub: cognitoSub ?? null,
+      cognitoSub: userData.cognitoSub ?? null,
       email: userData.email ?? null,
       firstName: userData.name?.first ?? null,
       lastName: userData.name?.last ?? null,
@@ -24,7 +24,7 @@ export default class UsersDrizzleRepository implements UsersRepository {
         target: users.id,
         set: {
           ...userData,
-          cognitoSub: cognitoSub ?? null,
+          cognitoSub: userData.cognitoSub ?? null,
         },
       }).returning();
     return this.toDomainUser(user as DbUser);
@@ -79,6 +79,11 @@ export default class UsersDrizzleRepository implements UsersRepository {
     return user ? this.toDomainUser(user as DbUser) : undefined;
   }
 
+  async getUserByCognitoSub(cognitoSub: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.cognitoSub, cognitoSub)).limit(1);
+    return user ? this.toDomainUser(user as DbUser) : undefined;
+  }
+
   async setUserAdmin(userId: string, isAdmin: boolean): Promise<User | undefined> {
     const [user] = await db.update(users).set({ isAdmin }).where(eq(users.id, userId)).returning();
     return user ? this.toDomainUser(user as DbUser) : undefined;
@@ -113,6 +118,19 @@ export default class UsersDrizzleRepository implements UsersRepository {
         enabled: dbUser.emailEnabled ?? true,
         deliveryHour: dbUser.emailDeliveryHour ?? 8,
       },
+    };
+  }
+
+  toDbInsertUser(domainUser: User): DbInsertUser {
+    return {
+      cognitoSub: domainUser.cognitoSub,
+      email: domainUser.email,
+      firstName: domainUser.name?.first,
+      lastName: domainUser.name?.last,
+      emailEnabled: domainUser.emailPreferences.enabled,
+      emailDeliveryHour: domainUser.emailPreferences.deliveryHour,
+      isGuest: domainUser.role === "guest",
+      isAdmin: domainUser.role === "admin",
     };
   }
 }

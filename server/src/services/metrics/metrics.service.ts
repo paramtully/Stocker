@@ -2,6 +2,7 @@ import PageViewsRepository from "server/src/repositories/interfaces/metrics/page
 import IMetricsService from "./IMetrics.service";
 import PageView from "server/src/domain/metrics/PageView";
 import PageViewsDrizzleRepository from "server/src/repositories/drizzle/metrics/pageViews.drizzle";
+import crypto from "crypto";
 
 export default class MetricsService implements IMetricsService {
     private readonly pageViewsRepository: PageViewsRepository;
@@ -19,4 +20,18 @@ export default class MetricsService implements IMetricsService {
         };
         await this.pageViewsRepository.recordPageView(pageView);
     }
+
+    async getUserSession(authHeader?: string, guestUserId?: string): Promise<string> {
+        if (authHeader?.startsWith("Bearer ")) {
+            const token = authHeader.slice(7);
+            // Hash the token to create a stable, shorter session identifier
+            return crypto.createHash("sha256").update(token).digest("hex");
+        } else if (guestUserId) {
+            // Guest user - use guestUserId as session identifier
+            return guestUserId;
+        }
+        throw new Error("No session ID found");
+    }
+
+
 }

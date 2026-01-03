@@ -1,16 +1,12 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
+import { AuthService, IAuthService } from "server/src/services/auth/";
+import UsersDrizzleRepository from "server/src/repositories/drizzle/user.drizzle";
+
+const authService = new AuthService(new UsersDrizzleRepository());
 
 export const authController = {
-    getAuthUser: async (req: Request, res: Response) => {
+    getUser: async (req: Request, res: Response) => {
         // stub
-        return res.json(null);
-    },
-    getAuthStatus: async (req: Request, res: Response) => {
-        // stub
-        return res.json(null);
-    },
-    ensureUserIsAuthenticated: async (req: Request, res: Response, next: NextFunction) => {
-        // stub
-        return next();
-    },
-}
+        res.json(null)
+    }
+};

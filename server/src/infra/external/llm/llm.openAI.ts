@@ -14,8 +14,8 @@ export default class LlmOpenAI implements LlmExternalService {
         });
     }
 
-    // generate text from the model, returns the content of the response or an empty string if there is an error
-    async generateText(systemPrompt: string, userPrompt: string, temperature: number = 0.7): Promise<string> {
+    // generate JSON response as a string from the model, returns the content of the response or an empty string if there is an error
+    async generateJsonString(systemPrompt: string, userPrompt: string, temperature: number = 0.3): Promise<string> {
         try {
             const response = await this.client.chat.completions.create({
                 model: this.model,

@@ -20,12 +20,12 @@ export const requestLogger = [
   (req: Request, res: Response, next: NextFunction) => {
     const start = Date.now();
     const path = req.path;
-    let capturedJsonResponse: Record<string, any> | undefined = undefined;
+    let capturedJsonResponse: unknown = undefined;
   
     const originalResJson = res.json;
-    res.json = function (bodyJson: any, ...args: any[]) {
+    res.json = function (bodyJson: unknown) {
       capturedJsonResponse = bodyJson;
-        return originalResJson.apply(res, [bodyJson, ...args]);
+        return originalResJson.apply(res, [bodyJson]);
       };
     
     res.on("finish", () => {

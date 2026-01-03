@@ -1,5 +1,6 @@
 export default interface User {
-    id: string;
+    id?: string;
+    cognitoSub?: string;
     email?: string;
     name?: {
       first: string;
