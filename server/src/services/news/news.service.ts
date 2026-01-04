@@ -49,7 +49,7 @@ Respond in JSON format:
             const userPrompt: string = `Analyze this news article about ${newsArticle.ticker}:
             Headline: ${newsArticle.title}
             Summary: ${newsArticle.summary}`;
-            const summary = await this.llmExternalService.generateText(systemPrompt, userPrompt);
+            const summary = await this.llmExternalService.generateJsonString(systemPrompt, userPrompt);
             const generatedAnalysis = JSON.parse(summary);
             return {
                 ticker: newsArticle.ticker,
@@ -93,7 +93,7 @@ ${quotes.map(q => `- ${q.ticker} (${q.companyName}): $${q.price.toFixed(2)} (${q
 Recent News:
 ${flattenedNewsSummaries.map(n => `- [${n.ticker}] ${n.headline} (${n.sentiment})`).join('\n')}`
 
-        const summary = await this.llmExternalService.generateText(systemPrompt, userPrompt);
+        const summary = await this.llmExternalService.generateJsonString(systemPrompt, userPrompt);
         return JSON.parse(summary).dailyEmailSummary as string || '';
     }
 }

@@ -64,7 +64,7 @@ export default class NewsDrizzleRepository implements NewsRepository {
             ticker: dbNewsSummary.ticker,
             source: dbNewsSummary.source,
             headline: dbNewsSummary.headline,
-            articleUrl: dbNewsSummary.articleUrl,
+            articleUrl: dbNewsSummary.articleUrl ?? "",
             publishDate: new Date(dbNewsSummary.publishDate),
             summary: dbNewsSummary.summary ?? "",
             impactAnalysis: dbNewsSummary.impactAnalysis ? dbNewsSummary.impactAnalysis.split(",") : [],
