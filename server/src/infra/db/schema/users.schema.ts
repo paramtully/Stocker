@@ -5,8 +5,7 @@ import { z } from "zod"
 import { check } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    cognitoSub: varchar("cognito_sub").unique(),
+    id: varchar("id").primaryKey(),        // cognito sub
     email: varchar("email").unique(),
     firstName: varchar("first_name"),
     lastName: varchar("last_name"),
@@ -30,7 +29,6 @@ export const users = pgTable("users", {
 ]);
 
 export const insertUserSchema = createInsertSchema(users).omit({
-    id: true,
     createdAt: true,
     updatedAt: true,
 });
@@ -39,7 +37,6 @@ export type DbUser = typeof users.$inferSelect;
 export type DbInsertUser = z.infer<typeof insertUserSchema>;
 
 export const updateUserSchema = createInsertSchema(users).omit({
-    id: true,
     createdAt: true,
     updatedAt: true,
 });

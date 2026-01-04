@@ -4,9 +4,7 @@ import { DbInsertUser, DbUser } from "server/src/infra/db/schema/users.schema";
 export default interface UsersRepository {
     // Existing methods...
     getUserById(id: string): Promise<User | null>;
-    getUserByCognitoSub(cognitoSub: string): Promise<User | undefined>;
     insertUser(user: User): Promise<User>;
-    createGuestUser(): Promise<User>;
     getRegisteredUsers(): Promise<User[]>;
     updateUserEmailSettings(userId: string, enabled: boolean, deliveryHour: number): Promise<User | null>;
     getUsersForEmailAlert(hour: number): Promise<User[]>;

@@ -8,10 +8,10 @@ export const stocksController = {
             // const results = tickerDataService.search(query, 10);
             const stockService = new StockService();
             const results = await stockService.searchTickersByPrefix(prefix);
-            res.json(results);
+            return res.json(results);
           } catch (error) {
             console.error("Error searching tickers:", error);
-            res.status(500).json({ error: "Failed to search tickers" });
+            return res.status(500).json({ error: "Failed to search tickers" });
           }
     },
 }

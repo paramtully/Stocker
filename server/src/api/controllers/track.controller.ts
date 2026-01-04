@@ -15,7 +15,7 @@ export const trackController = {
             
             const userId = getUserId(req);
             // session id is either the bearer token hash or the guest user id
-            const sessionId = await metricsService.getUserSession(req.headers.authorization, req.guestUserId);
+            const sessionId = await metricsService.getUserSession(req.headers.authorization, req.cognitoUser?.sub);
       
             await metricsService.recordPageView(path, userId, sessionId, req.headers["user-agent"] ?? undefined);
             return res.json({ success: true });

@@ -11,8 +11,8 @@ export default class AuthService implements IAuthService {
         this.usersRepository = new UsersDrizzleRepository();
     }
 
-    async getUser(cognitoSub: string): Promise<User | undefined> {
-        const user = await this.usersRepository.getUserByCognitoSub(cognitoSub);
+    async getUser(id: string): Promise<User | undefined> {
+        const user = await this.usersRepository.getUserById(id);
         return user ? 
         {
             email: user.email,
@@ -55,7 +55,7 @@ export default class AuthService implements IAuthService {
 
             // Create DB user
             await this.usersRepository.insertUser({
-                cognitoSub: sub!,
+                id: sub,
                 role: "guest",
                 emailPreferences: { enabled: false, deliveryHour: 8 },
             });
@@ -70,10 +70,6 @@ export default class AuthService implements IAuthService {
             console.error(error);
             throw new Error("Failed to create guest user");
         }
-    }
-
-    async getUserByCognitoSub(cognitoSub: string): Promise<User | undefined> {
-        return this.usersRepository.getUserByCognitoSub(cognitoSub);
     }
 
     async insertUser(user: User): Promise<void> {

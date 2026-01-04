@@ -2,22 +2,7 @@ import { Request, Response } from "express";
 import { mockQuotes } from "server/src/infra/mocks/quote.mock";
 import PortfolioService from "server/src/services/portfolio/portfolio.service";
 import IPortfolioService from "server/src/services/portfolio/IPortfolio.service";
-
-function getUserId(req: Request): string | null {
-    // Check for authenticated user
-    const user = req.user as any;
-    if (user?.claims?.sub) {
-      return user.claims.sub;
-    }
-    
-    // Check for guest session
-    const session = req.session as any;
-    if (session?.guestUserId) {
-      return session.guestUserId;
-    }
-    
-    return null;
-}
+import getUserId from "../shared/getUser";
 
 const portfolioService: IPortfolioService = new PortfolioService();
 
@@ -26,12 +11,8 @@ export const portfolioController = {
     getUserQuotes: async (req: Request, res: Response) => {
         try {
             
-            const userId: string | null = getUserId(req);
-            if (!userId) {
-              return res.status(401).json({ error: "No session" });
-            }
-      
-            const userQuotes = await portfolioService.getUserQuotes(userId);
+            const userId: string | undefined = getUserId(req);
+            const userQuotes = userId ? await portfolioService.getUserQuotes(userId) : [];
             
             // If user has no holdings, return mock quotes as defaults with default shares
             if (userQuotes.length === 0) {
@@ -48,17 +29,14 @@ export const portfolioController = {
 
     addUserHolding: async (req: Request, res: Response) => {
         try {
-            const userId: string | null = getUserId(req);
-            if (!userId) {
-                return res.status(401).json({ error: "No session" });
-            }
+            const userId: string | undefined = getUserId(req);
 
             const { ticker, shares, purchaseDate, purchasePrice } = req.body;
             if (!ticker || !shares || !purchaseDate) {
                 return res.status(400).json({ error: "Missing required fields" });
             }
 
-            await portfolioService.addUserHolding(userId, ticker, shares, purchaseDate, purchasePrice);
+            await portfolioService.addUserHolding(userId!, ticker, shares, purchaseDate, purchasePrice);
             return res.status(200).json({ message: "Holding added successfully" });
         } catch (error) {
             console.error("Error adding stock to portfolio:", error);
@@ -68,17 +46,14 @@ export const portfolioController = {
 
     removeUserHolding: async (req: Request, res: Response) => {
         try {
-            const userId: string | null = getUserId(req);
-            if (!userId) {
-                return res.status(401).json({ error: "No session" });
-            }
+            const userId: string | undefined = getUserId(req);
 
             const { ticker } = req.params;
             if (!ticker) {
                 return res.status(400).json({ error: "Missing required fields" });
             }
 
-            await portfolioService.removeUserHolding(userId, ticker);
+            await portfolioService.removeUserHolding(userId!, ticker);
             return res.status(200).json({ message: "Holding removed successfully" });
         } catch (error) {
             console.error("Error removing stock from portfolio:", error);
@@ -88,31 +63,25 @@ export const portfolioController = {
 
     getPortfolioOverview: async (req: Request, res: Response) => {
         try {
-            const userId: string | null = getUserId(req);
-            if (!userId) {
-                return res.status(401).json({ error: "No session" });
-            }
+            const userId: string | undefined = getUserId(req);
 
-            const portfolioOverview = await portfolioService.getPortfolioOverview(userId);
-            return res.status(200).json(portfolioOverview);
+            const portfolioOverview = userId ? await portfolioService.getPortfolioOverview(userId) : null;
+            return res.json(portfolioOverview);
         } catch (error) {
             console.error("Error getting portfolio overview:", error);
-            res.status(500).json({ error: "Failed to get portfolio overview" });
+            return res.status(500).json({ error: "Failed to get portfolio overview" });
         }
     },
 
     getPortfolioCharts: async (req: Request, res: Response) => {
         try {
-            const userId: string | null = getUserId(req);
-            if (!userId) {
-                return res.status(401).json({ error: "No session" });
-            }
+            const userId: string | undefined = getUserId(req);
 
-            const portfolioCharts = await portfolioService.getPortfolioCharts(userId);
-            return res.status(200).json(portfolioCharts);
+            const portfolioCharts = userId ? await portfolioService.getPortfolioCharts(userId) : {};
+            return res.json(portfolioCharts);
         } catch (error) {
             console.error("Error getting portfolio charts:", error);
-            res.status(500).json({ error: "Failed to get portfolio charts" });
+            return res.status(500).json({ error: "Failed to get portfolio charts" });
         }
     },
 }

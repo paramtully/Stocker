@@ -1,17 +1,20 @@
 import { DbUser, users } from "../../infra/db/schema";
 import User from "../../domain/user";
 import { db } from "server/src/infra/db/db";
-import { eq, and, count, gte, not } from "drizzle-orm";
+import { eq, and, count, gte, not, or } from "drizzle-orm";
 import { DbInsertUser } from "server/src/infra/db/schema/users.schema";
 import UsersRepository from "../interfaces/users.repository";
 
 export default class UsersDrizzleRepository implements UsersRepository {
   async insertUser(userData: User): Promise<User> {
+    if (!userData.id) {
+      throw new Error("User ID is required");
+    }
     const dbUser: DbInsertUser = {
-      cognitoSub: userData.cognitoSub ?? null,
-      email: userData.email ?? null,
-      firstName: userData.name?.first ?? null,
-      lastName: userData.name?.last ?? null,
+      id: userData.id,
+      email: userData.email,
+      firstName: userData.name?.first,
+      lastName: userData.name?.last,
       emailEnabled: userData.emailPreferences.enabled,
       emailDeliveryHour: userData.emailPreferences.deliveryHour,
       role: userData.role,
@@ -23,29 +26,13 @@ export default class UsersDrizzleRepository implements UsersRepository {
         target: users.id,
         set: {
           ...userData,
-          cognitoSub: userData.cognitoSub ?? null,
         },
       }).returning();
     return this.toDomainUser(user as DbUser);
   }
 
-  async createGuestUser(): Promise<User> {
-    const guestId = `guest_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-    const [user] = await db
-      .insert(users)
-      .values({
-        id: guestId,
-        role: "guest",
-        email: null,
-        firstName: null,
-        lastName: null,
-      })
-      .returning();
-    return this.toDomainUser(user);
-  }
-
   async getRegisteredUsers(): Promise<User[]> {
-    const dbUsers: DbUser[] = await db.select().from(users).where(eq(users.role, "user"));
+    const dbUsers: DbUser[] = await db.select().from(users).where(or(eq(users.role, "user"), eq(users.role, "admin")));
     return dbUsers.map(this.toDomainUser);
   }
 
@@ -75,11 +62,6 @@ export default class UsersDrizzleRepository implements UsersRepository {
 
   async getUserByEmail(email: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
-    return user ? this.toDomainUser(user as DbUser) : undefined;
-  }
-
-  async getUserByCognitoSub(cognitoSub: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.cognitoSub, cognitoSub)).limit(1);
     return user ? this.toDomainUser(user as DbUser) : undefined;
   }
 
@@ -121,8 +103,11 @@ export default class UsersDrizzleRepository implements UsersRepository {
   }
 
   toDbInsertUser(domainUser: User): DbInsertUser {
+    if (!domainUser.id) {
+      throw new Error("User ID is required");
+    }
     return {
-      cognitoSub: domainUser.cognitoSub,
+      id: domainUser.id,
       email: domainUser.email,
       firstName: domainUser.name?.first,
       lastName: domainUser.name?.last,

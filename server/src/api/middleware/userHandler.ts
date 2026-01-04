@@ -17,11 +17,11 @@ export const userHandler = [
             return res.status(403).json({ error: "Invalid token" });
         }
 
-        const user = await authService.getUserByCognitoSub(claims.sub);
+        const user = await authService.getUser(claims.sub);
         if (!user) {
             try {
                 await authService.insertUser({
-                    cognitoSub: claims.sub,
+                    id: claims.sub,
                     email: claims.email,
                     name: {
                         first: claims.given_name,
