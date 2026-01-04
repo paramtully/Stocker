@@ -13,7 +13,7 @@ export default interface UsersRepository {
     
     // Add these from pageViews repository:
     getUserByEmail(email: string): Promise<User | undefined>;
-    setUserAdmin(userId: string, isAdmin: boolean): Promise<User | undefined>;
+    setUserAdmin(userId: string, role: "admin" | "user" | "guest"): Promise<User | undefined>;
     getSignupsToday(): Promise<number>;      // Queries users.createdAt
     getSignupsTotal(): Promise<number>;      // Queries users
     getTotalUsers(): Promise<number>;        // Queries users

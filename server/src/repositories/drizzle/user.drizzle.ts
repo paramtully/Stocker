@@ -1,7 +1,7 @@
 import { DbUser, users } from "../../infra/db/schema";
 import User from "../../domain/user";
 import { db } from "server/src/infra/db/db";
-import { eq, and, count, gte } from "drizzle-orm";
+import { eq, and, count, gte, not } from "drizzle-orm";
 import { DbInsertUser } from "server/src/infra/db/schema/users.schema";
 import UsersRepository from "../interfaces/users.repository";
 
@@ -14,8 +14,7 @@ export default class UsersDrizzleRepository implements UsersRepository {
       lastName: userData.name?.last ?? null,
       emailEnabled: userData.emailPreferences.enabled,
       emailDeliveryHour: userData.emailPreferences.deliveryHour,
-      isGuest: userData.role === "guest",
-      isAdmin: userData.role === "admin",
+      role: userData.role,
     };
     const [user] = await db
     .insert(users)
@@ -36,7 +35,7 @@ export default class UsersDrizzleRepository implements UsersRepository {
       .insert(users)
       .values({
         id: guestId,
-        isGuest: true,
+        role: "guest",
         email: null,
         firstName: null,
         lastName: null,
@@ -46,7 +45,7 @@ export default class UsersDrizzleRepository implements UsersRepository {
   }
 
   async getRegisteredUsers(): Promise<User[]> {
-    const dbUsers: DbUser[] = await db.select().from(users).where(eq(users.isGuest, false));
+    const dbUsers: DbUser[] = await db.select().from(users).where(eq(users.role, "user"));
     return dbUsers.map(this.toDomainUser);
   }
 
@@ -64,7 +63,7 @@ export default class UsersDrizzleRepository implements UsersRepository {
     const dbUsers: DbUser[] = await db
       .select()
       .from(users)
-      .where(and(eq(users.emailEnabled, true), eq(users.emailDeliveryHour, hour), eq(users.isGuest, false))); 
+      .where(and(eq(users.emailEnabled, true), eq(users.emailDeliveryHour, hour), not(eq(users.role, "guest")))); 
       
       return dbUsers.map(this.toDomainUser);
   }
@@ -84,8 +83,8 @@ export default class UsersDrizzleRepository implements UsersRepository {
     return user ? this.toDomainUser(user as DbUser) : undefined;
   }
 
-  async setUserAdmin(userId: string, isAdmin: boolean): Promise<User | undefined> {
-    const [user] = await db.update(users).set({ isAdmin }).where(eq(users.id, userId)).returning();
+  async setUserAdmin(userId: string, role: "admin" | "user" | "guest"): Promise<User | undefined> {
+    const [user] = await db.update(users).set({ role }).where(eq(users.id, userId)).returning();
     return user ? this.toDomainUser(user as DbUser) : undefined;
   }
 
@@ -113,7 +112,7 @@ export default class UsersDrizzleRepository implements UsersRepository {
       name: dbUser.firstName && dbUser.lastName
         ? { first: dbUser.firstName, last: dbUser.lastName }
         : undefined,
-      role: dbUser.isAdmin ? "admin" : dbUser.isGuest ? "guest" : "user",
+      role: dbUser.role as "admin" | "user" | "guest",
       emailPreferences: {
         enabled: dbUser.emailEnabled ?? true,
         deliveryHour: dbUser.emailDeliveryHour ?? 8,
@@ -129,8 +128,8 @@ export default class UsersDrizzleRepository implements UsersRepository {
       lastName: domainUser.name?.last,
       emailEnabled: domainUser.emailPreferences.enabled,
       emailDeliveryHour: domainUser.emailPreferences.deliveryHour,
-      isGuest: domainUser.role === "guest",
-      isAdmin: domainUser.role === "admin",
+      role: domainUser.role,
+      expiresAt: domainUser.role === "guest" ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : null,
     };
   }
 }
