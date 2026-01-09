@@ -1,7 +1,7 @@
 import { NewsSummary } from "server/src/domain/news";
 import Quote from "server/src/domain/stock/quote";
 import { Holding } from "server/src/domain/portfolio";
-import User from "server/src/domain/user";
+import { User } from "server/src/domain/user/index";
 
 export default abstract class EmailScheduler {
     abstract start(): void;

@@ -1,7 +1,7 @@
-import User from "server/src/domain/user";
+import { User } from "server/src/domain/user";
 
+// interface for auth related database operations
 export default interface IAuthService {
-    getUser(cognitoSub: string): Promise<User | undefined>;
-    createGuestUser(): Promise<{ accessToken: string, idToken: string, expiresIn: number }>;
-    insertUser(user: User): Promise<void>;
+    getUserById(userId: string): Promise<User | undefined>;
+    insertUser(user: User): Promise<void>; // into db
 }

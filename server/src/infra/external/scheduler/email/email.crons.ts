@@ -1,6 +1,6 @@
 import { Holding } from "server/src/domain/portfolio";
 import EmailScheduler from "./email.scheduler";
-import User from "server/src/domain/user";
+import { User } from "server/src/domain/user/index";
 import UsersRepository from "server/src/repositories/interfaces/users.repository";
 import UsersDrizzleRepository from "server/src/repositories/drizzle/user.drizzle";
 import PortfolioService from "server/src/services/portfolio/portfolio.service";
@@ -62,7 +62,7 @@ export default class EmailCrons extends EmailScheduler {
             if (!user.email) continue;
             
             try {
-              await this.sendDailyEmail(user.id, user.email);
+              await this.sendDailyEmail(user.id!, user.email);
               console.log(`[EmailScheduler] Email sent to ${user.email}`);
             } catch (error) {
               console.error(`[EmailScheduler] Failed to send email to ${user.email}:`, error);
@@ -95,7 +95,7 @@ export default class EmailCrons extends EmailScheduler {
 
         const results = await Promise.all(
         usersWithEmailEnabled.map(async (user) => {
-            const holdings = await this.portfolioService.getUserHoldings(user.id);
+            const holdings = await this.portfolioService.getUserHoldings(user.id!);
             return { email: user.email, holdings };
         }));
         

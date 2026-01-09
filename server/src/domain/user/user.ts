@@ -1,3 +1,5 @@
+import type { UserRole } from "./userRole";
+
 export default interface User {
     id?: string;
     email?: string;
@@ -5,7 +7,7 @@ export default interface User {
       first: string;
       last: string;
     };
-    role: "admin" | "user" | "guest";
+    role: UserRole;
     emailPreferences: {
       enabled: boolean;
       deliveryHour: number;

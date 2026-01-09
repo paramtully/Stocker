@@ -1,78 +1,24 @@
 import IAuthService from "./IAuth.service";
 import UsersRepository from "server/src/repositories/interfaces/users.repository";
-import User from "server/src/domain/user";
+import { User } from "server/src/domain/user/index";
 import UsersDrizzleRepository from "server/src/repositories/drizzle/user.drizzle";
-import { v4 as uuid } from 'uuid';
+import { AuthCognitoClient } from "server/src/infra/external/auth/aws";
 
 export default class AuthService implements IAuthService {
     private readonly usersRepository: UsersRepository;
+    private readonly cognitoClient: AuthCognitoClient;
 
     constructor() {
         this.usersRepository = new UsersDrizzleRepository();
+        this.cognitoClient = new AuthCognitoClient();
     }
 
-    async getUser(id: string): Promise<User | undefined> {
-        const user = await this.usersRepository.getUserById(id);
-        return user ? 
-        {
-            email: user.email,
-            name: user.name,
-            role: user.role,
-            emailPreferences: user.emailPreferences,
-        } as User : undefined;
-    }
-
-    async createGuestUser(): Promise<{ accessToken: string, idToken: string, expiresIn: number }> {
-        const username: string = `guest_${uuid()}`;
-
-        try {
-
-            // Create Cognito user
-            const createRes = await cognito.adminCreateUser({
-                UserPoolId: process.env.COGNITO_USER_POOL_ID!,
-                Username: username,
-                TemporaryPassword: uuid(), // never exposed
-                MessageAction: "SUPPRESS",
-                UserAttributes: [
-                { Name: "custom:userType", Value: "guest" }
-                ]
-            });
-
-            const sub = createRes.User?.Attributes?.find(
-                a => a.Name === "sub"
-            )?.Value;
-          
-            // Exchange for tokens
-            const authRes = await cognito.adminInitiateAuth({
-                UserPoolId: process.env.COGNITO_USER_POOL_ID!,
-                ClientId: process.env.COGNITO_CLIENT_ID!,
-                AuthFlow: "ADMIN_NO_SRP_AUTH",
-                AuthParameters: {
-                USERNAME: username,
-                PASSWORD: createRes.User?.TemporaryPassword ?? uuid()
-                }
-            });
-
-            // Create DB user
-            await this.usersRepository.insertUser({
-                id: sub,
-                role: "guest",
-                emailPreferences: { enabled: false, deliveryHour: 8 },
-            });
-
-            // Return tokens
-            return {
-                accessToken: authRes.AuthenticationResult?.AccessToken,
-                idToken: authRes.AuthenticationResult?.IdToken,
-                expiresIn: authRes.AuthenticationResult?.ExpiresIn
-            };
-        } catch (error) {
-            console.error(error);
-            throw new Error("Failed to create guest user");
-        }
+    async getUserById(userId: string): Promise<User | undefined> {
+        return await this.usersRepository.getUserById(userId);
     }
 
     async insertUser(user: User): Promise<void> {
         await this.usersRepository.insertUser(user);
     }
+
 }

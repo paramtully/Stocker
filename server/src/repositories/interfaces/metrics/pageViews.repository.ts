@@ -1,7 +1,5 @@
 import PageView from "server/src/domain/metrics/PageView";
 import { DbInsertPageView, DbPageView } from "server/src/infra/db/schema/pageViews.schema";
-import DailyMetrics from "server/src/domain/metrics/dailyMetrics";
-import User from "server/src/domain/user";
 
 export default interface PageViewsRepository {
     // CRUD

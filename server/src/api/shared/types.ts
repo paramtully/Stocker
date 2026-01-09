@@ -1,4 +1,5 @@
 import { Request } from "express";
+import { UserRole } from "server/src/domain/user";
 
 // Extend Request type
 export interface RequestWithCognitoUser extends Request {
@@ -21,7 +22,5 @@ export type JWTClaims = {
     given_name: string;
     family_name: string;
     email_verified: boolean;
-    custom: {
-        userType: "admin" | "user" | "guest";
-    };
+    "custom:role": UserRole;
 }

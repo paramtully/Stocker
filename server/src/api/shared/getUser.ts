@@ -1,7 +1,7 @@
-import { RequestWithCognitoUser } from "./types";
+import { RequestWithUser } from "./RequestWithUser";
+import { Request } from "express";
 
 // Helper to get user ID from request (authenticated or guest)
-export default function getUserId(req: RequestWithCognitoUser): string | undefined {
-    // Check for authenticated Cognito user
-    return req.cognitoUser?.sub;
+export default function getUserId(req: Request): string | undefined {
+    return (req as RequestWithUser).user?.id;
 }
