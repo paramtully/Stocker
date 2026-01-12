@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "../..",
+    "module": "ESNext",
+    "target": "ES2022",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "baseUrl": "../..",
+    "paths": {
+      "packages/domain/*": ["packages/domain/*"]
+    }
+  },
+  "include": ["src/**/*", "../domain/**/*", "../repositories"]
+  }

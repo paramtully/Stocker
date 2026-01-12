@@ -1,0 +1,17 @@
+{
+    "name": "@stocker/external-services",
+    "version": "1.0.0",
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+      "build": "tsc"
+    },
+    "dependencies": {
+      "@stocker/domain": "*",
+      "yahoo-finance2": "^3.10.2"
+    },
+    "devDependencies": {
+      "typescript": "~5.9.3"
+    }
+  }
