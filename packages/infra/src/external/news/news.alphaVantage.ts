@@ -1,12 +1,15 @@
 import NewsExternalService from "./news.external";
-import NewsArticle from "packages/domain/src/news/newsArticle";
-import { NewsHistoryStatus } from "packages/domain/src/news";
-import NewsRepository from "../../repositories/interfaces/news/news.repository";
-import NewsDrizzleRepository from "../../repositories/drizzle/news/news.drizzle.repository";
-import NewsHistoryStatusRepository from "../../repositories/interfaces/news/newsHistoryStatus.repository";
-import NewsHistoryStatusDrizzleRepository from "../../repositories/drizzle/news/newsHistoryStatus.drizzle";
+import NewsArticle from "@stocker/domain/news/newsArticle";
+import { NewsHistoryStatus } from "@stocker/domain/news";
+import { NewsRepository } from "@stocker/repositories/interfaces/news";
+import { NewsDrizzleRepository } from "@stocker/repositories/drizzle/news";
+import { NewsHistoryStatusRepository } from "@stocker/repositories/interfaces/news";
+import { NewsHistoryStatusesDrizzleRepository } from "@stocker/repositories/drizzle/news";
+import { StockRepository } from "@stocker/repositories/interfaces/stock";
+import { StocksDrizzleRepository } from "@stocker/repositories/drizzle/stock";
 
-export default class NewsAlphaVantage implements NewsExternalService {
+
+export default class NewsAlphaVantage extends NewsExternalService {
     private readonly baseUrl: string = "https://www.alphavantage.co/query";
     private readonly apiKey: string = process.env.ALPHA_VANTAGE_API_KEY!;
     private readonly limit: number = 1000;
@@ -16,14 +19,18 @@ export default class NewsAlphaVantage implements NewsExternalService {
 
     private newsRepository: NewsRepository;
     private newsHistoryStatusRepository: NewsHistoryStatusRepository;
+    private stocksRepository: StockRepository;
 
     constructor() {
+        super()
         this.newsRepository = new NewsDrizzleRepository();
-        this.newsHistoryStatusRepository = new NewsHistoryStatusDrizzleRepository();
+        this.newsHistoryStatusRepository = new NewsHistoryStatusesDrizzleRepository();
+        this.stocksRepository = new StocksDrizzleRepository();
     }
 
-    async getAllLatestNewsArticles(tickers: string[], latestArticleDate: Date): Promise<Record<string, NewsArticle[]>> {
+    async getAllLatestNewsArticles(tickers: string[]): Promise<Record<string, NewsArticle[]>> {
 
+        const latestArticleDate: Date = await this.newsRepository.getDateofLatestNewsSummary();
         const newsArticles: Record<string, NewsArticle[]> = {};
 
         // chunk tickers into chunks of 200 (~5 articles per ticker, ~20 API calls total)
@@ -35,10 +42,14 @@ export default class NewsAlphaVantage implements NewsExternalService {
 
         // fetch news articles for each chunk
         for (const chunk of chunks) {
+            // delay 1200ms to avoid rate limiting
+            await this.delay(this.delayMs);
+
             const url = `${this.baseUrl}?function=NEWS_SENTIMENT&tickers=${chunk.join(",")}&time_from=${latestArticleDate.toISOString()}&limit=${this.limit}&sort=${this.sort}&apikey=${this.apiKey}`;
             const response = await fetch(url);
             if (!response.ok) {
-                throw new Error(`AlphaVantage request failed: ${response.statusText}`);
+                console.log(`AlphaVantage request failed for tickers starting at ${chunk[0]}: ${response.statusText}`);
+                continue;
             }
             const data = await response.json();
 
@@ -46,7 +57,7 @@ export default class NewsAlphaVantage implements NewsExternalService {
             // Also handle error responses like { "Note": "..." } or { "Error Message": "..." }
             if (data["Error Message"] || data["Note"]) {
                 console.log(`AlphaVantage request failed for tickers starting at ${chunk[0]}: ${data["Error Message"] || data["Note"]}`);
-                return newsArticles;
+                continue;
             }
 
             const feed = data.feed || [];
@@ -65,15 +76,14 @@ export default class NewsAlphaVantage implements NewsExternalService {
                     summary: item.summary,
                 });
             }
-
-            // delay 1200ms to avoid rate limiting
-            await this.delay(this.delayMs);
         }
 
         return newsArticles;
     }
 
-    async getAllHistoricalNewsArticles(historyStatuses: NewsHistoryStatus[]): Promise<Record<string, NewsArticle[]>> {
+    async getAllHistoricalNewsArticles(): Promise<Record<string, NewsArticle[]>> {
+        
+        const historyStatuses: NewsHistoryStatus[] = await this.newsHistoryStatusRepository.getNewsHistoryStatuses();
 
         const newsArticles: Record<string, NewsArticle[]> = {};
 
@@ -81,17 +91,21 @@ export default class NewsAlphaVantage implements NewsExternalService {
         const incompleteTickers = historyStatuses.filter(status => !status.isHistoryComplete).map(status => status.ticker);
 
         // get earliest article date for each incomplete ticker from db
-        const earliestArticleDates: Record<string, Date> = await this.newsRepository.getEarliestArticleDate(incompleteTickers) ?? {};
+        const earliestArticleDates: Record<string, Date> = await this.newsRepository.getEarliestArticleDate(incompleteTickers);
 
         // loop through incomplete tickers
         for (const ticker of incompleteTickers) {   
+
+            // delay 1200ms to avoid rate limiting
+            await this.delay(this.delayMs);
 
             const url = `${this.baseUrl}?function=NEWS_SENTIMENT&tickers=${ticker}&time_from=${earliestArticleDates[ticker].toISOString()}&limit=${this.limit}&sort=${this.sort}&apikey=${this.apiKey}`;
             const response = await fetch(url);
 
             // if request fails, throw error
             if (!response.ok) {
-                throw new Error(`AlphaVantage request failed: ${response.statusText}`);
+                console.log(`AlphaVantage request failed for ticker ${ticker}: ${response.statusText}`);
+                continue;
             }
 
             const data = await response.json();
@@ -100,12 +114,13 @@ export default class NewsAlphaVantage implements NewsExternalService {
             // Also handle error responses like { "Note": "..." } or { "Error Message": "..." }
             if (data["Error Message"] || data["Note"]) {
                 console.log(`AlphaVantage request failed for ticker ${ticker}: ${data["Error Message"] || data["Note"]}`);
-                return newsArticles;
+                continue;
             }
 
             const feed = data.feed || [];
             if (!Array.isArray(feed)) {
-                return newsArticles;
+                console.log(`AlphaVantage request failed for ticker ${ticker}: Invalid feed structure`);
+                continue;
             }
 
             // add news articles to newsArticles
@@ -119,9 +134,6 @@ export default class NewsAlphaVantage implements NewsExternalService {
                     summary: item.summary,
                 });
             }
-
-            // delay 1200ms to avoid rate limiting
-            await this.delay(this.delayMs);
         }
 
         return newsArticles;

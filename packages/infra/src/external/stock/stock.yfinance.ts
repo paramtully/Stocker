@@ -8,12 +8,11 @@ export default class StockYfinance extends StockExternalService {
     private readonly apiKey: string = process.env.YFINANCE_API_KEY!;
 
 
-
-    async getAllStocks(): Promise<Stock[]> {
-        const tickers = await super.getTickers();
+    async getAllStocks(exchange: string = "NASDAQ"): Promise<Stock[]> {
+        const tickers = await super.getTickers(exchange);
         const stocks: Stock[] = [];
 
-        tickers.map(async (ticker) => {
+        for (const ticker of tickers) {
             try {
                 const data = await yf.quoteSummary(ticker, {
                   modules: [
@@ -34,7 +33,14 @@ export default class StockYfinance extends StockExternalService {
               } catch (error) {
                 console.error(`Error fetching stock for ${ticker}:`, error);
               }
-        });
+              
+              // Add delay to avoid rate limiting (Yahoo Finance has rate limits)
+              await this.delay(1800);
+        }
         return stocks;
+    }
+
+    private delay(ms: number): Promise<void> {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 }

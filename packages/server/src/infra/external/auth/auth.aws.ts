@@ -1,5 +1,5 @@
 import { UserRole } from "packages/domain/src/user";
-import AuthExternalService from "../auth.external";
+import AuthExternalService from "./auth.external";
 import { AdminCreateUserCommand, AdminInitiateAuthCommand, CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-provider";
 import { CognitoJwtVerifier } from "aws-jwt-verify";
 import { v4 as uuid } from "uuid";
@@ -30,6 +30,15 @@ export default class AuthCognitoClient implements AuthExternalService {
     private cognitoJwtVerifier;
 
     constructor() {
+        if (!process.env.AWS_REGION) {
+            throw new Error("AWS_REGION environment variable must be set");
+        }
+        if (!process.env.COGNITO_USER_POOL_ID) {
+            throw new Error("COGNITO_USER_POOL_ID environment variable must be set");
+        }
+        if (!process.env.COGNITO_CLIENT_ID) {
+            throw new Error("COGNITO_CLIENT_ID environment variable must be set");
+        }
         this.client = new CognitoIdentityProviderClient({
             region: process.env.AWS_REGION!,
         });

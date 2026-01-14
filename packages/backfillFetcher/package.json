@@ -1,0 +1,23 @@
+{
+  "name": "@stocker/backfillFetcher",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@stocker/db": "*",
+    "@stocker/domain": "*",
+    "@stocker/infra": "*",
+    "@stocker/repositories": "*",
+    "@stocker/bucket-repositories": "*",
+    "@stocker/server": "*"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "tsx": "^4.21.0"
+  }
+}
+

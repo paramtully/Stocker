@@ -10,6 +10,6 @@ export default interface NewsRepository {
     insertNewsSummary(news: NewsSummary[]): Promise<void>;
     getEarliestArticleDate(tickers: string[]): Promise<Record<string, Date>>;
     getDateofLatestNewsSummary(): Promise<Date>;
-    toDomainNewsSummary(db: DbNewsSummary): NewsSummary;
+    toDomainNewsSummary(db: DbInsertNewsSummary | DbNewsSummary): NewsSummary;
     toDbInsertNewsSummary(newsSummary: NewsSummary): DbInsertNewsSummary;
 }

@@ -22,7 +22,19 @@ export default class StocksDrizzleRepository implements StocksRepository {
     }
 
     async insertStock(stock: DbStock): Promise<Stock> {
-        const [dbStock] = await db.insert(stocks).values(stock).returning();
+        const [dbStock] = await db
+        .insert(stocks)
+        .values(stock)
+        .onConflictDoUpdate({
+            target: [stocks.ticker],
+            set: {
+                companyName: stock.companyName,
+                marketCap: stock.marketCap,
+                industry: stock.industry,
+                exchange: stock.exchange,
+                updatedAt: new Date(),
+            },
+        }).returning();
         return this.toDomainStock(dbStock as DbStock);
     }
 

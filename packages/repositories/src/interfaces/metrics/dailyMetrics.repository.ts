@@ -1,5 +1,5 @@
-import { DailyMetrics } from "packages/domain/src/metrics";
-import { DbDailyMetrics, DbInsertDailyMetrics } from "../../../../db/src/schema/dailyMetrics.schema";
+import { DailyMetrics } from "@stocker/domain/metrics";
+import { DbDailyMetrics, DbInsertDailyMetrics } from "@stocker/db/schema/dailyMetrics.schema";
 
 export default interface DailyMetricsRepository {
     // CRUD

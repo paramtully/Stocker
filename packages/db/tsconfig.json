@@ -8,7 +8,7 @@
     "strict": true,
     "baseUrl": "../..",
     "paths": {
-      "packages/domain/*": ["packages/domain/*"]
+      "packages/domain/*": ["packages/domain/*"],
     }
   },
   "include": ["src/**/*", "../domain/**/*", "../repositories"]

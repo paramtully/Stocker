@@ -1,8 +1,8 @@
 import IAuthService from "./IAuth.service";
-import UsersRepository from "server/src/repositories/interfaces/users.repository";
+import UsersRepository from "../../repositories/interfaces/users.repository";
 import { User } from "packages/domain/src/user/index";
-import UsersDrizzleRepository from "server/src/repositories/drizzle/user.drizzle";
-import { AuthCognitoClient } from "server/src/infra/external/auth/aws";
+import UsersDrizzleRepository from "../../repositories/drizzle/user.drizzle";
+import { AuthCognitoClient } from "../../infra/external/auth";
 
 export default class AuthService implements IAuthService {
     private readonly usersRepository: UsersRepository;

@@ -1,8 +1,7 @@
-import { NewsSummary, Sentiment } from "packages/domain/src/news";
-import { DbInsertNewsSummary, DbNewsSummary } from "../../../../db/src/schema/newsSummary.schema";
-import { db } from "../../../../db/src/db";
+import { NewsSummary, Sentiment } from "@stocker/domain/news";
+import { DbInsertNewsSummary, DbNewsSummary, newsSummaries } from "@stocker/db/schema/newsSummary.schema";
+import { db } from "@stocker/db/db";
 import { eq, desc, inArray, asc, and } from "drizzle-orm";
-import { newsSummaries } from "../../../../db/src/schema/newsSummary.schema";
 import NewsRepository from "../../interfaces/news/news.repository";
 
 export default class NewsDrizzleRepository implements NewsRepository {
@@ -12,12 +11,12 @@ export default class NewsDrizzleRepository implements NewsRepository {
     }
 
     async getLatestNewsSummary(ticker: string): Promise<NewsSummary | null> {
-        const [dbNewsSummary] = await db.select().from(newsSummaries).where(eq(newsSummaries.ticker, ticker)).orderBy(desc(newsSummaries.publishDate)).limit(1);
-        return dbNewsSummary ? this.toDomainNewsSummary(dbNewsSummary as DbNewsSummary) : null;
+        const [dbNewsSummary]: DbNewsSummary[] = await db.select().from(newsSummaries).where(eq(newsSummaries.ticker, ticker)).orderBy(desc(newsSummaries.publishDate)).limit(1);
+        return dbNewsSummary ? this.toDomainNewsSummary(dbNewsSummary) : null;
     }
 
     async getTickerNewsSummaries(ticker: string): Promise<NewsSummary[]> {
-        const dbNewsSummaries: DbNewsSummary[] = await db.select().from(newsSummaries).where(eq(newsSummaries.ticker, ticker));
+        const dbNewsSummaries: DbNewsSummary[] = await db.select().from(newsSummaries).where(eq(newsSummaries.ticker, ticker)).orderBy(desc(newsSummaries.publishDate));
         return dbNewsSummaries.map(this.toDomainNewsSummary);
     }
 
@@ -43,7 +42,7 @@ export default class NewsDrizzleRepository implements NewsRepository {
 
     async insertNewsSummary(news: NewsSummary[]): Promise<void> {
         const dbNewsSummaries: DbInsertNewsSummary[] = news.map(this.toDbInsertNewsSummary);
-        await db.insert(newsSummaries).values(dbNewsSummaries);
+        await db.insert(newsSummaries).values(dbNewsSummaries).onConflictDoNothing();
     }
 
     async getEarliestArticleDate(tickers: string[]): Promise<Record<string, Date>> {
@@ -59,7 +58,7 @@ export default class NewsDrizzleRepository implements NewsRepository {
         return dbNewsSummary ? new Date(dbNewsSummary.publishDate) : new Date(0);
     }
 
-    toDomainNewsSummary(dbNewsSummary: DbInsertNewsSummary): NewsSummary {
+    toDomainNewsSummary(dbNewsSummary: DbInsertNewsSummary | DbNewsSummary): NewsSummary {
         return {
             ticker: dbNewsSummary.ticker,
             source: dbNewsSummary.source,

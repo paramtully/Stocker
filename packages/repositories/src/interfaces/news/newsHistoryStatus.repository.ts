@@ -1,4 +1,4 @@
-import { NewsHistoryStatus } from "packages/domain/src/news";
+import { NewsHistoryStatus } from "@stocker/domain/news";
 import { DbNewsHistoryStatus } from "../../../../db/src/schema/newsHistoryStatus.schema";
 
 export default interface NewsHistoryStatusRepository {

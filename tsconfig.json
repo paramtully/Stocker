@@ -1,5 +1,5 @@
 {
-  "include": ["client/src/**/*", "shared/**/*", "server/**/*", "packages/server/src/api/middleware/.ts", "packages/server/src", "packages/domain", "packages/infra/src/external/candle", "packages/infra/src/external/news"],
+  "include": ["client/src/**/*", "shared/**/*", "server/**/*", "packages/server/src/api/middleware/.ts", "packages/server/src", "packages/domain", "packages/infra/src/external/candle", "packages/infra/src/external/news", "packages/infra/src/external/stock", "packages/infra/src/external/llm"],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
   "compilerOptions": {
     "incremental": true,

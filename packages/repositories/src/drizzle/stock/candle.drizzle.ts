@@ -16,7 +16,16 @@ export default class CandleDrizzleRepository implements CandlesRepository {
     }
 
     async insertCandles(candlesToInsert: Candle[]): Promise<void> {
-        await db.insert(candles).values(candlesToInsert.map(this.toDbCandle));
+        await db.insert(candles).values(candlesToInsert.map(this.toDbCandle)).onConflictDoUpdate({
+            target: [candles.ticker, candles.date],
+            set: {
+                open: sql`excluded.open`,
+                high: sql`excluded.high`,
+                low: sql`excluded.low`,
+                close: sql`excluded.close`,
+                volume: sql`excluded.volume`,
+            },
+        });
     }
 
     async getCandleByTickerAndDate(ticker: string, date: Date): Promise<Candle | null> {

@@ -1,21 +1,20 @@
 {
   "compilerOptions": {
     "outDir": "./dist",
+    "rootDir": "./src",
     "module": "ESNext",
     "target": "ES2022",
     "moduleResolution": "bundler",
     "strict": true,
-    "declaration": true,
-    "declarationMap": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "declarationMap": true,
     "baseUrl": ".",
     "paths": {
       "@stocker/domain/*": ["../domain/src/*"],
-      "@stocker/repositories/*": ["../repositories/src/*"],
-      "@stocker/db/*": ["../db/src/*"],
-      "@stocker/infra": ["."]
+      "@stocker/infra/*": ["../infra/src/*"]
     }
   },
   "include": ["src/**/*"],
