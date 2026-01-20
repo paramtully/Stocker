@@ -1,36 +1,21 @@
 import NewsExternalService from "./news.external";
 import NewsArticle from "@stocker/domain/news/newsArticle";
-import { NewsHistoryStatus } from "@stocker/domain/news";
-import { NewsRepository } from "@stocker/repositories/interfaces/news";
-import { NewsDrizzleRepository } from "@stocker/repositories/drizzle/news";
-import { NewsHistoryStatusRepository } from "@stocker/repositories/interfaces/news";
-import { NewsHistoryStatusesDrizzleRepository } from "@stocker/repositories/drizzle/news";
-import { StockRepository } from "@stocker/repositories/interfaces/stock";
-import { StocksDrizzleRepository } from "@stocker/repositories/drizzle/stock";
 
 
 export default class NewsAlphaVantage extends NewsExternalService {
     private readonly baseUrl: string = "https://www.alphavantage.co/query";
     private readonly apiKey: string = process.env.ALPHA_VANTAGE_API_KEY!;
     private readonly limit: number = 1000;
-    private readonly sort: string = "latest";
+    private readonly sort: string = "oldest";
     private readonly chunkSize: number = 200;
     private readonly delayMs: number = 1200;
 
-    private newsRepository: NewsRepository;
-    private newsHistoryStatusRepository: NewsHistoryStatusRepository;
-    private stocksRepository: StockRepository;
-
     constructor() {
-        super()
-        this.newsRepository = new NewsDrizzleRepository();
-        this.newsHistoryStatusRepository = new NewsHistoryStatusesDrizzleRepository();
-        this.stocksRepository = new StocksDrizzleRepository();
+        super();
     }
 
     async getAllLatestNewsArticles(tickers: string[]): Promise<Record<string, NewsArticle[]>> {
 
-        const latestArticleDate: Date = await this.newsRepository.getDateofLatestNewsSummary();
         const newsArticles: Record<string, NewsArticle[]> = {};
 
         // chunk tickers into chunks of 200 (~5 articles per ticker, ~20 API calls total)
@@ -81,25 +66,17 @@ export default class NewsAlphaVantage extends NewsExternalService {
         return newsArticles;
     }
 
-    async getAllHistoricalNewsArticles(): Promise<Record<string, NewsArticle[]>> {
-        
-        const historyStatuses: NewsHistoryStatus[] = await this.newsHistoryStatusRepository.getNewsHistoryStatuses();
+    async getAllHistoricalNewsArticles(tickers: string[]): Promise<Record<string, NewsArticle[]>> {
 
         const newsArticles: Record<string, NewsArticle[]> = {};
 
-        // filter history statuses to only include those that are not complete
-        const incompleteTickers = historyStatuses.filter(status => !status.isHistoryComplete).map(status => status.ticker);
-
-        // get earliest article date for each incomplete ticker from db
-        const earliestArticleDates: Record<string, Date> = await this.newsRepository.getEarliestArticleDate(incompleteTickers);
-
-        // loop through incomplete tickers
-        for (const ticker of incompleteTickers) {   
+        // loop through tickers
+        for (const ticker of tickers) {   
 
             // delay 1200ms to avoid rate limiting
             await this.delay(this.delayMs);
 
-            const url = `${this.baseUrl}?function=NEWS_SENTIMENT&tickers=${ticker}&time_from=${earliestArticleDates[ticker].toISOString()}&limit=${this.limit}&sort=${this.sort}&apikey=${this.apiKey}`;
+            const url = `${this.baseUrl}?function=NEWS_SENTIMENT&tickers=${ticker}&time_from=1970-01-01&limit=${this.limit}&sort=${this.sort}&apikey=${this.apiKey}`;
             const response = await fetch(url);
 
             // if request fails, throw error

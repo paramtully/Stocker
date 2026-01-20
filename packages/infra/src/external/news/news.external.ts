@@ -11,7 +11,7 @@ export default abstract class NewsExternalService {
     }
 
     abstract getAllLatestNewsArticles(tickers: string[], latestArticleDate: Date): Promise<Record<string, NewsArticle[]>>;
-    abstract getAllHistoricalNewsArticles(historyStatuses: NewsHistoryStatus[]): Promise<Record<string, NewsArticle[]>>;
+    abstract getAllHistoricalNewsArticles(tickers: string[]): Promise<Record<string, NewsArticle[]>>;
     
     // TODO: decouple from llm service (instead return prompt and let the caller generate the summary)
     getNewsSummaries(newsArticles: NewsArticle[]): Promise<Record<string, NewsSummary[]>> {

@@ -5,3 +5,4 @@ export default interface BucketExternalService {
     listObjects(prefix: string): Promise<string[]>;
 }
 
+
