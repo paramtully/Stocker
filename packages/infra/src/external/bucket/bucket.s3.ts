@@ -52,6 +52,31 @@ export default class BucketS3 implements BucketExternalService {
         }
     }
 
+    async getObjectBuffer(key: string): Promise<Buffer | null> {
+        try {
+            const response = await this.s3Client.send(new GetObjectCommand({
+                Bucket: this.bucketName,
+                Key: key,
+            }));
+            
+            if (!response.Body) {
+                return null;
+            }
+
+            const chunks: Uint8Array[] = [];
+            for await (const chunk of response.Body as ReadableStream<Uint8Array>) {
+                chunks.push(chunk);
+            }
+            
+            return Buffer.concat(chunks);
+        } catch (error: unknown) {
+            if (error instanceof Error && 'name' in error && error.name === 'NoSuchKey') {
+                return null;
+            }
+            throw error;
+        }
+    }
+
     async deleteObject(key: string): Promise<void> {
         await this.s3Client.send(new DeleteObjectCommand({
             Bucket: this.bucketName,

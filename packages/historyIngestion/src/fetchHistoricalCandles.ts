@@ -8,7 +8,7 @@ export async function fetchHistoricalCandles(tickers: string[]): Promise<void> {
     const candleService: CandleExternalService = new CandleYfinance();
     const candleBucketRepo: CandleBucketRepository = new CandleBucketS3Repository();
 
-    let candles: Candle[] = [];
+    let candles: Record<string, Candle[]> = {};
 
     // get all historical candles
     try {
