@@ -33,7 +33,7 @@ export default class BucketS3 implements BucketExternalService {
                 Bucket: this.bucketName,
                 Key: key,
             }));
-            
+
             if (!response.Body) {
                 return null;
             }
@@ -42,7 +42,7 @@ export default class BucketS3 implements BucketExternalService {
             for await (const chunk of response.Body as ReadableStream<Uint8Array>) {
                 chunks.push(chunk);
             }
-            
+
             return Buffer.concat(chunks).toString('utf-8');
         } catch (error: unknown) {
             if (error instanceof Error && 'name' in error && error.name === 'NoSuchKey') {
@@ -58,7 +58,7 @@ export default class BucketS3 implements BucketExternalService {
                 Bucket: this.bucketName,
                 Key: key,
             }));
-            
+
             if (!response.Body) {
                 return null;
             }
@@ -67,7 +67,7 @@ export default class BucketS3 implements BucketExternalService {
             for await (const chunk of response.Body as ReadableStream<Uint8Array>) {
                 chunks.push(chunk);
             }
-            
+
             return Buffer.concat(chunks);
         } catch (error: unknown) {
             if (error instanceof Error && 'name' in error && error.name === 'NoSuchKey') {
