@@ -1,4 +1,4 @@
-import CandleBucketRepository from "./candleBucket.repository";
+import CandleBucketRepository, { ErrorManifest } from "./candleBucket.repository";
 import { BucketExternalService, BucketS3 } from "@stocker/infra/external/bucket";
 import Candle from "@stocker/domain/stock/candle";
 
@@ -110,6 +110,30 @@ export default class CandleBucketS3Repository implements CandleBucketRepository 
             return new Date(value);
         }
         return value;
+    }
+
+    // New methods - JSON repository doesn't support these, use Parquet repository instead
+    async updateYearFileWithDailyData(_year: number, _dailyCandles: Candle[]): Promise<void> {
+        throw new Error("updateYearFileWithDailyData is not supported in JSON repository. Use CandleBucketS3ParquetRepository instead.");
+    }
+
+    async getCandlesForDateRange(_startDate: Date, _endDate: Date): Promise<Candle[]> {
+        throw new Error("getCandlesForDateRange is not supported in JSON repository. Use CandleBucketS3ParquetRepository instead.");
+    }
+
+    async getMissingTradingDays(_startDate: Date, _endDate: Date, _tickers: string[]): Promise<{
+        missingDates: Date[];
+        missingByTicker: Record<string, Date[]>;
+    }> {
+        throw new Error("getMissingTradingDays is not supported in JSON repository. Use CandleBucketS3ParquetRepository instead.");
+    }
+
+    async getErrorManifest(_date: Date): Promise<ErrorManifest | null> {
+        throw new Error("getErrorManifest is not supported in JSON repository. Use CandleBucketS3ParquetRepository instead.");
+    }
+
+    async saveErrorManifest(_manifest: ErrorManifest): Promise<void> {
+        throw new Error("saveErrorManifest is not supported in JSON repository. Use CandleBucketS3ParquetRepository instead.");
     }
 }
 

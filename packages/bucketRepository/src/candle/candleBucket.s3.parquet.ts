@@ -1,6 +1,7 @@
-import CandleBucketRepository from "./candleBucket.repository";
+import CandleBucketRepository, { ErrorManifest } from "./candleBucket.repository";
 import { BucketExternalService, BucketS3 } from "@stocker/infra/external/bucket";
 import Candle from "@stocker/domain/stock/candle";
+import { MarketCalendar } from "@stocker/infra/utils";
 // @ts-expect-error - parquet-wasm types may not be available until package is installed
 import initWasm, { readParquet, writeParquet } from "parquet-wasm";
 // @ts-expect-error - apache-arrow types may not be available until package is installed
@@ -11,6 +12,7 @@ export default class CandleBucketS3ParquetRepository implements CandleBucketRepo
     private readonly rootKey: string = `candles/`;
     private readonly yearKey: string = `${this.rootKey}year/`;
     private readonly dailyKey: string = `${this.rootKey}daily/`;
+    private readonly errorKey: string = `errors/candles/`;
     private wasmInitialized: boolean = false;
 
     constructor() {
@@ -355,6 +357,144 @@ export default class CandleBucketS3ParquetRepository implements CandleBucketRepo
             }
             throw new Error(`Failed to parse parquet file: ${error instanceof Error ? error.message : String(error)}`);
         }
+    }
+
+    async updateYearFileWithDailyData(year: number, dailyCandles: Candle[]): Promise<void> {
+        await this.ensureWasmInitialized();
+
+        if (dailyCandles.length === 0) {
+            return;
+        }
+
+        const yearKey = `${this.yearKey}${year}.parquet`;
+
+        // Read existing year file
+        let existingCandles: Candle[] = [];
+        try {
+            const buffer = await this.bucketService.getObjectBuffer(yearKey);
+            if (buffer && buffer.length > 0) {
+                existingCandles = await this.parquetToCandles(buffer);
+            }
+        } catch (error) {
+            // File doesn't exist yet (first day of year), that's okay
+            console.log(`Year file ${year} doesn't exist yet, creating new file`);
+        }
+
+        // Create a map of existing candles by (ticker, date) for efficient lookup
+        const existingMap = new Map<string, Candle>();
+        for (const candle of existingCandles) {
+            const key = `${candle.ticker}_${candle.date.toISOString().split("T")[0]}`;
+            existingMap.set(key, candle);
+        }
+
+        // Merge: remove existing candles for dates in dailyCandles, then add new ones
+        for (const dailyCandle of dailyCandles) {
+            const key = `${dailyCandle.ticker}_${dailyCandle.date.toISOString().split("T")[0]}`;
+            existingMap.set(key, dailyCandle); // Overwrites if exists
+        }
+
+        // Convert back to array and sort by date
+        const mergedCandles = Array.from(existingMap.values());
+        mergedCandles.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+        // Write updated year file
+        const parquetBuffer = await this.candlesToParquet(mergedCandles);
+        await this.bucketService.putObject(yearKey, parquetBuffer, "application/x-parquet");
+    }
+
+    async getCandlesForDateRange(startDate: Date, endDate: Date): Promise<Candle[]> {
+        await this.ensureWasmInitialized();
+
+        const startYear = startDate.getFullYear();
+        const endYear = endDate.getFullYear();
+        const allCandles: Candle[] = [];
+
+        // Read all year files in range
+        for (let year = startYear; year <= endYear; year++) {
+            const yearKey = `${this.yearKey}${year}.parquet`;
+            try {
+                const buffer = await this.bucketService.getObjectBuffer(yearKey);
+                if (buffer && buffer.length > 0) {
+                    const yearCandles = await this.parquetToCandles(buffer);
+                    // Filter to date range
+                    const filtered = yearCandles.filter(c => {
+                        const candleDate = new Date(c.date);
+                        candleDate.setHours(0, 0, 0, 0);
+                        const start = new Date(startDate);
+                        start.setHours(0, 0, 0, 0);
+                        const end = new Date(endDate);
+                        end.setHours(23, 59, 59, 999);
+                        return candleDate >= start && candleDate <= end;
+                    });
+                    allCandles.push(...filtered);
+                }
+            } catch {
+                // Year file doesn't exist, skip it
+            }
+        }
+
+        return allCandles;
+    }
+
+    async getMissingTradingDays(startDate: Date, endDate: Date, tickers: string[]): Promise<{
+        missingDates: Date[];
+        missingByTicker: Record<string, Date[]>;
+    }> {
+        // Get all expected trading days
+        const expectedTradingDays = MarketCalendar.getTradingDays(startDate, endDate);
+
+        // Read year files in range to see what exists
+        const existingCandles = await this.getCandlesForDateRange(startDate, endDate);
+
+        // Create set of existing (ticker, date) combinations
+        const existingKeys = new Set(
+            existingCandles.map(c => `${c.ticker}_${c.date.toISOString().split("T")[0]}`)
+        );
+
+        // Check which trading days are missing
+        const missingDates: Date[] = [];
+        const missingByTicker: Record<string, Date[]> = {};
+
+        for (const tradingDay of expectedTradingDays) {
+            const dateStr = tradingDay.toISOString().split("T")[0];
+            let dateMissing = false;
+
+            for (const ticker of tickers) {
+                const key = `${ticker}_${dateStr}`;
+                if (!existingKeys.has(key)) {
+                    if (!missingByTicker[ticker]) {
+                        missingByTicker[ticker] = [];
+                    }
+                    missingByTicker[ticker].push(new Date(tradingDay));
+                    if (!dateMissing) {
+                        missingDates.push(new Date(tradingDay));
+                        dateMissing = true;
+                    }
+                }
+            }
+        }
+
+        return { missingDates, missingByTicker };
+    }
+
+    async getErrorManifest(date: Date): Promise<ErrorManifest | null> {
+        const dateStr = date.toISOString().split("T")[0];
+        const key = `${this.errorKey}${dateStr}-errors.json`;
+
+        try {
+            const data = await this.bucketService.getObject(key);
+            if (!data) return null;
+            return JSON.parse(data) as ErrorManifest;
+        } catch (error) {
+            console.error(`Error reading error manifest for ${dateStr}:`, error);
+            return null;
+        }
+    }
+
+    async saveErrorManifest(manifest: ErrorManifest): Promise<void> {
+        const key = `${this.errorKey}${manifest.date}-errors.json`;
+        const data = JSON.stringify(manifest, null, 2);
+        await this.bucketService.putObject(key, data, "application/json");
     }
 }
 
