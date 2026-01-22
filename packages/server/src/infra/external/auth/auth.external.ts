@@ -14,4 +14,5 @@ export default interface AuthExternalService {
     setUserPassword(cognitoUsername: string, password: string): Promise<void>;
     updateUserRole(cognitoUsername: string, role: UserRole): Promise<void>;
     getUserByUsername(username: string): Promise<{ id: string, email?: string, role: UserRole } | undefined>;
+    deleteUser(userId: string): Promise<void>;
 }

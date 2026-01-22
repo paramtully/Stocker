@@ -15,6 +15,7 @@ export default interface UsersRepository {
     getSignupsToday(): Promise<number>;      // Queries users.createdAt
     getSignupsTotal(): Promise<number>;      // Queries users
     getTotalUsers(): Promise<number>;        // Queries users
+    getExpiredGuestUsers(): Promise<DbUser[]>;  // Queries expired guest users
     
     // Mapper
     toDomainUser(db: DbUser): User;

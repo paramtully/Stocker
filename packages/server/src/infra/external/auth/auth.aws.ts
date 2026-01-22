@@ -1,6 +1,6 @@
 import { UserRole } from "packages/domain/src/user";
 import AuthExternalService from "./auth.external";
-import { AdminCreateUserCommand, AdminInitiateAuthCommand, AdminUpdateUserAttributesCommand, AdminSetUserPasswordCommand, AdminGetUserCommand, CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-provider";
+import { AdminCreateUserCommand, AdminInitiateAuthCommand, AdminUpdateUserAttributesCommand, AdminSetUserPasswordCommand, AdminGetUserCommand, AdminDeleteUserCommand, CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-provider";
 import { CognitoJwtVerifier } from "aws-jwt-verify";
 import { v4 as uuid } from "uuid";
 import { Request } from "express";
@@ -173,5 +173,12 @@ export default class AuthCognitoClient implements AuthExternalService {
             console.error("Error getting user by username:", error);
             return undefined;
         }
+    }
+
+    async deleteUser(userId: string): Promise<void> {
+        await this.client.send(new AdminDeleteUserCommand({
+            UserPoolId: process.env.COGNITO_USER_POOL_ID!,
+            Username: userId, // userId is the Cognito sub, which can be used as Username
+        }));
     }
 }

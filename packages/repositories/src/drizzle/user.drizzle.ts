@@ -1,7 +1,7 @@
 import { DbUser, users } from "../../../db/src/schema";
 import { User, UserRole } from "packages/domain/src/user";
 import { db } from "../../../db/src/db";
-import { eq, and, count, gte, not, or } from "drizzle-orm";
+import { eq, and, count, gte, not, or, lt } from "drizzle-orm";
 import { DbInsertUser } from "../../../db/src/schema/users.schema";
 import UsersRepository from "../interfaces/users.repository";
 
@@ -85,6 +85,18 @@ export default class UsersDrizzleRepository implements UsersRepository {
   async getTotalUsers(): Promise<number> {
     const result = await db.select({ count: count() }).from(users);
     return result[0]?.count || 0;
+  }
+
+  async getExpiredGuestUsers(): Promise<DbUser[]> {
+    const now = new Date();
+    const expiredUsers = await db
+      .select()
+      .from(users)
+      .where(and(
+        eq(users.role, "guest"),
+        lt(users.expiresAt, now)
+      ));
+    return expiredUsers;
   }
 
   toDomainUser(dbUser: DbUser): User {
