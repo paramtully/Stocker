@@ -1,4 +1,4 @@
-import NewsBucketRepository from "./newsBucket.repository";
+import NewsBucketRepository, { NewsErrorManifest } from "./newsBucket.repository";
 import { BucketExternalService, BucketS3 } from "@stocker/infra/external/bucket";
 import NewsArticle from "@stocker/domain/news/newsArticle";
 import NewsSummary from "@stocker/domain/news/newsSummary";
@@ -13,6 +13,7 @@ export default class NewsBucketS3ParquetRepository implements NewsBucketReposito
     private readonly processedRootKey: string = `news/processed`;
     private readonly rawYearKey: string = `${this.rawRootKey}/year/`;
     private readonly processedYearKey: string = `${this.processedRootKey}/year/`;
+    private readonly errorKey: string = `errors/news/`;
     private wasmInitialized: boolean = false;
 
     constructor() {
@@ -723,6 +724,176 @@ export default class NewsBucketS3ParquetRepository implements NewsBucketReposito
             }
             throw new Error(`Failed to parse parquet file: ${error instanceof Error ? error.message : String(error)}`);
         }
+    }
+
+    async updateYearFileWithRawArticles(year: number, articles: NewsArticle[]): Promise<void> {
+        await this.ensureWasmInitialized();
+
+        if (articles.length === 0) {
+            return;
+        }
+
+        const yearKey = `${this.rawYearKey}${year}.parquet`;
+
+        // Read existing year file
+        let existingArticles: NewsArticle[] = [];
+        try {
+            const buffer = await this.bucketService.getObjectBuffer(yearKey);
+            if (buffer && buffer.length > 0) {
+                existingArticles = await this.parquetToArticles(buffer);
+            }
+        } catch {
+            // File doesn't exist yet (first day of year), that's okay
+            console.log(`Year file ${year} doesn't exist yet, creating new file`);
+        }
+
+        // Create a map of existing articles by URL for efficient lookup
+        const existingMap = new Map<string, NewsArticle>();
+        for (const article of existingArticles) {
+            existingMap.set(article.url, article);
+        }
+
+        // Merge: remove existing articles for URLs in new articles, then add new ones
+        for (const article of articles) {
+            existingMap.set(article.url, article); // Overwrites if exists
+        }
+
+        // Convert back to array and sort by date
+        const mergedArticles = Array.from(existingMap.values());
+        mergedArticles.sort((a, b) => a.publishDate.getTime() - b.publishDate.getTime());
+
+        // Write updated year file
+        const parquetBuffer = await this.articlesToParquet(mergedArticles);
+        await this.bucketService.putObject(yearKey, parquetBuffer, "application/x-parquet");
+    }
+
+    async updateYearFileWithSummaries(year: number, summaries: NewsSummary[]): Promise<void> {
+        await this.ensureWasmInitialized();
+
+        if (summaries.length === 0) {
+            return;
+        }
+
+        const yearKey = `${this.processedYearKey}${year}.parquet`;
+
+        // Read existing year file
+        let existingSummaries: NewsSummary[] = [];
+        try {
+            const buffer = await this.bucketService.getObjectBuffer(yearKey);
+            if (buffer && buffer.length > 0) {
+                existingSummaries = await this.parquetToSummaries(buffer);
+            }
+        } catch {
+            // File doesn't exist yet (first day of year), that's okay
+            console.log(`Year file ${year} doesn't exist yet, creating new file`);
+        }
+
+        // Create a map of existing summaries by articleUrl for efficient lookup
+        const existingMap = new Map<string, NewsSummary>();
+        for (const summary of existingSummaries) {
+            existingMap.set(summary.articleUrl, summary);
+        }
+
+        // Merge: remove existing summaries for URLs in new summaries, then add new ones
+        for (const summary of summaries) {
+            existingMap.set(summary.articleUrl, summary); // Overwrites if exists
+        }
+
+        // Convert back to array and sort by date
+        const mergedSummaries = Array.from(existingMap.values());
+        mergedSummaries.sort((a, b) => a.publishDate.getTime() - b.publishDate.getTime());
+
+        // Write updated year file
+        const parquetBuffer = await this.summariesToParquet(mergedSummaries);
+        await this.bucketService.putObject(yearKey, parquetBuffer, "application/x-parquet");
+    }
+
+    async getRawArticlesForDateRange(startDate: Date, endDate: Date): Promise<NewsArticle[]> {
+        await this.ensureWasmInitialized();
+
+        const startYear = startDate.getFullYear();
+        const endYear = endDate.getFullYear();
+        const allArticles: NewsArticle[] = [];
+
+        // Read all year files in range
+        for (let year = startYear; year <= endYear; year++) {
+            const yearKey = `${this.rawYearKey}${year}.parquet`;
+            try {
+                const buffer = await this.bucketService.getObjectBuffer(yearKey);
+                if (buffer && buffer.length > 0) {
+                    const yearArticles = await this.parquetToArticles(buffer);
+                    // Filter to date range
+                    const filtered = yearArticles.filter(a => {
+                        const articleDate = new Date(a.publishDate);
+                        articleDate.setHours(0, 0, 0, 0);
+                        const start = new Date(startDate);
+                        start.setHours(0, 0, 0, 0);
+                        const end = new Date(endDate);
+                        end.setHours(23, 59, 59, 999);
+                        return articleDate >= start && articleDate <= end;
+                    });
+                    allArticles.push(...filtered);
+                }
+            } catch {
+                // Year file doesn't exist, skip it
+            }
+        }
+
+        return allArticles;
+    }
+
+    async getSummariesForDateRange(startDate: Date, endDate: Date): Promise<NewsSummary[]> {
+        await this.ensureWasmInitialized();
+
+        const startYear = startDate.getFullYear();
+        const endYear = endDate.getFullYear();
+        const allSummaries: NewsSummary[] = [];
+
+        // Read all year files in range
+        for (let year = startYear; year <= endYear; year++) {
+            const yearKey = `${this.processedYearKey}${year}.parquet`;
+            try {
+                const buffer = await this.bucketService.getObjectBuffer(yearKey);
+                if (buffer && buffer.length > 0) {
+                    const yearSummaries = await this.parquetToSummaries(buffer);
+                    // Filter to date range
+                    const filtered = yearSummaries.filter(s => {
+                        const summaryDate = new Date(s.publishDate);
+                        summaryDate.setHours(0, 0, 0, 0);
+                        const start = new Date(startDate);
+                        start.setHours(0, 0, 0, 0);
+                        const end = new Date(endDate);
+                        end.setHours(23, 59, 59, 999);
+                        return summaryDate >= start && summaryDate <= end;
+                    });
+                    allSummaries.push(...filtered);
+                }
+            } catch {
+                // Year file doesn't exist, skip it
+            }
+        }
+
+        return allSummaries;
+    }
+
+    async getErrorManifest(date: Date, dataType: 'raw' | 'summarization'): Promise<NewsErrorManifest | null> {
+        const dateStr = date.toISOString().split("T")[0];
+        const key = `${this.errorKey}${dataType}/${dateStr}-errors.json`;
+
+        try {
+            const data = await this.bucketService.getObject(key);
+            if (!data) return null;
+            return JSON.parse(data) as NewsErrorManifest;
+        } catch {
+            return null;
+        }
+    }
+
+    async saveErrorManifest(manifest: NewsErrorManifest): Promise<void> {
+        const dataType = manifest.dataType === 'news-raw' ? 'raw' : 'summarization';
+        const key = `${this.errorKey}${dataType}/${manifest.date}-errors.json`;
+        const data = JSON.stringify(manifest, null, 2);
+        await this.bucketService.putObject(key, data, "application/json");
     }
 }
 

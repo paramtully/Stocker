@@ -1,0 +1,20 @@
+{
+  "name": "@stocker/news-s3-to-rds",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@stocker/bucketRepository": "*",
+    "@stocker/repositories": "*",
+    "@stocker/db": "*"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3"
+  }
+}
+

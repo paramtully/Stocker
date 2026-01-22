@@ -1,0 +1,20 @@
+{
+  "name": "@stocker/news-ingestion",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@stocker/infra": "*",
+    "@stocker/bucketRepository": "*",
+    "@stocker/repositories": "*"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3"
+  }
+}
+

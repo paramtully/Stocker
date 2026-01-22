@@ -3,3 +3,4 @@ import NewsBucketS3ParquetRepository from "./newsBucket.s3.parquet";
 import NewsBucketRepository from "./newsBucket.repository";
 
 export { NewsBucketS3Repository, NewsBucketS3ParquetRepository, NewsBucketRepository };
+export type { NewsErrorManifest } from "./newsBucket.repository";

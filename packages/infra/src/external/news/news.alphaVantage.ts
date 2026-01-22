@@ -14,7 +14,7 @@ export default class NewsAlphaVantage extends NewsExternalService {
         super();
     }
 
-    async getAllLatestNewsArticles(tickers: string[]): Promise<Record<string, NewsArticle[]>> {
+    async getAllLatestNewsArticles(tickers: string[], latestArticleDate: Date): Promise<Record<string, NewsArticle[]>> {
 
         const newsArticles: Record<string, NewsArticle[]> = {};
 
@@ -71,7 +71,7 @@ export default class NewsAlphaVantage extends NewsExternalService {
         const newsArticles: Record<string, NewsArticle[]> = {};
 
         // loop through tickers
-        for (const ticker of tickers) {   
+        for (const ticker of tickers) {
 
             // delay 1200ms to avoid rate limiting
             await this.delay(this.delayMs);
@@ -118,5 +118,5 @@ export default class NewsAlphaVantage extends NewsExternalService {
 
     private delay(ms: number): Promise<void> {
         return new Promise(resolve => setTimeout(resolve, ms));
-    }   
+    }
 }

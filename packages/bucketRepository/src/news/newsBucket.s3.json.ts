@@ -199,5 +199,36 @@ export default class NewsBucketS3Repository implements NewsBucketRepository {
         }
         return value;
     }
+
+    // New methods - JSON repository doesn't support these, use Parquet repository instead
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    async updateYearFileWithRawArticles(_year: number, _articles: NewsArticle[]): Promise<void> {
+        throw new Error("updateYearFileWithRawArticles is not supported in JSON repository. Use NewsBucketS3ParquetRepository instead.");
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    async updateYearFileWithSummaries(_year: number, _summaries: NewsSummary[]): Promise<void> {
+        throw new Error("updateYearFileWithSummaries is not supported in JSON repository. Use NewsBucketS3ParquetRepository instead.");
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    async getRawArticlesForDateRange(_startDate: Date, _endDate: Date): Promise<NewsArticle[]> {
+        throw new Error("getRawArticlesForDateRange is not supported in JSON repository. Use NewsBucketS3ParquetRepository instead.");
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    async getSummariesForDateRange(_startDate: Date, _endDate: Date): Promise<NewsSummary[]> {
+        throw new Error("getSummariesForDateRange is not supported in JSON repository. Use NewsBucketS3ParquetRepository instead.");
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    async getErrorManifest(_date: Date, _dataType: 'raw' | 'summarization'): Promise<null> {
+        throw new Error("getErrorManifest is not supported in JSON repository. Use NewsBucketS3ParquetRepository instead.");
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    async saveErrorManifest(_manifest: { date: string; dataType: string; errors: unknown[]; partialSuccess: unknown[] }): Promise<void> {
+        throw new Error("saveErrorManifest is not supported in JSON repository. Use NewsBucketS3ParquetRepository instead.");
+    }
 }
 
