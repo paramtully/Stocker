@@ -1,6 +1,6 @@
 import { UserRole } from "packages/domain/src/user";
 import AuthExternalService from "./auth.external";
-import { AdminCreateUserCommand, AdminInitiateAuthCommand, CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-provider";
+import { AdminCreateUserCommand, AdminInitiateAuthCommand, AdminUpdateUserAttributesCommand, AdminSetUserPasswordCommand, AdminGetUserCommand, CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-provider";
 import { CognitoJwtVerifier } from "aws-jwt-verify";
 import { v4 as uuid } from "uuid";
 import { Request } from "express";
@@ -49,7 +49,7 @@ export default class AuthCognitoClient implements AuthExternalService {
         });
     }
 
-    async verifyToken(header: string): Promise<{id: string, username: string | undefined, email?: string, role: UserRole} | undefined> {
+    async verifyToken(header: string): Promise<{ id: string, username: string | undefined, email?: string, role: UserRole } | undefined> {
         const token = header.slice(7);
         const payload = await this.cognitoJwtVerifier.verify(token);
 
@@ -64,7 +64,7 @@ export default class AuthCognitoClient implements AuthExternalService {
         };
     }
 
-    async addUser(username: string, role: string, password?: string): Promise<{id: string, password: string}> {
+    async addUser(username: string, role: string, password?: string): Promise<{ id: string, password: string }> {
         const tempPassword = password ?? uuid();
         const createRes = await this.client.send(new AdminCreateUserCommand({
             UserPoolId: process.env.COGNITO_USER_POOL_ID!,
@@ -78,7 +78,7 @@ export default class AuthCognitoClient implements AuthExternalService {
         return {
             id: createRes.User?.Attributes?.find(
                 a => a.Name === "sub"
-                )?.Value as string,
+            )?.Value as string,
             password: tempPassword,
         };
     }
@@ -101,7 +101,7 @@ export default class AuthCognitoClient implements AuthExternalService {
         };
     }
 
-    async getUserFromRequest(req: Request, isIntercepted: boolean=false): Promise<{id: string, username?: string, email?: string, role: UserRole} | undefined> {
+    async getUserFromRequest(req: Request, isIntercepted: boolean = false): Promise<{ id: string, username?: string, email?: string, role: UserRole } | undefined> {
         if (!isIntercepted) {
             const authHeader = req.headers.authorization;
             if (authHeader?.startsWith("Bearer ")) {
@@ -109,7 +109,7 @@ export default class AuthCognitoClient implements AuthExternalService {
             }
             return undefined;
         }
-        
+
         const claims: CognitoJWTClaims = (req as RequestWithCognitoClaims).APIGatewayProxyEvent?.requestContext?.authorizer?.claims as CognitoJWTClaims;
         return claims ? {
             id: claims.sub,
@@ -117,5 +117,61 @@ export default class AuthCognitoClient implements AuthExternalService {
             email: claims.email,
             role: claims["custom:role"],
         } : undefined;
+    }
+
+    async updateUserEmail(cognitoUsername: string, email: string): Promise<void> {
+        await this.client.send(new AdminUpdateUserAttributesCommand({
+            UserPoolId: process.env.COGNITO_USER_POOL_ID!,
+            Username: cognitoUsername,
+            UserAttributes: [
+                { Name: "email", Value: email },
+                { Name: "email_verified", Value: "true" },
+            ],
+        }));
+    }
+
+    async setUserPassword(cognitoUsername: string, password: string): Promise<void> {
+        await this.client.send(new AdminSetUserPasswordCommand({
+            UserPoolId: process.env.COGNITO_USER_POOL_ID!,
+            Username: cognitoUsername,
+            Password: password,
+            Permanent: true,
+        }));
+    }
+
+    async updateUserRole(cognitoUsername: string, role: UserRole): Promise<void> {
+        await this.client.send(new AdminUpdateUserAttributesCommand({
+            UserPoolId: process.env.COGNITO_USER_POOL_ID!,
+            Username: cognitoUsername,
+            UserAttributes: [
+                { Name: "custom:role", Value: role },
+            ],
+        }));
+    }
+
+    async getUserByUsername(username: string): Promise<{ id: string, email?: string, role: UserRole } | undefined> {
+        try {
+            const response = await this.client.send(new AdminGetUserCommand({
+                UserPoolId: process.env.COGNITO_USER_POOL_ID!,
+                Username: username,
+            }));
+
+            const sub = response.UserAttributes?.find(attr => attr.Name === "sub")?.Value;
+            const email = response.UserAttributes?.find(attr => attr.Name === "email")?.Value;
+            const role = response.UserAttributes?.find(attr => attr.Name === "custom:role")?.Value as UserRole;
+
+            if (!sub || !role) {
+                return undefined;
+            }
+
+            return {
+                id: sub,
+                email,
+                role,
+            };
+        } catch (error) {
+            console.error("Error getting user by username:", error);
+            return undefined;
+        }
     }
 }

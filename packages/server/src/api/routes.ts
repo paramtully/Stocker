@@ -7,7 +7,7 @@ import { settingsController } from "./controllers/settings.controller";
 import { trackController } from "./controllers/track.controller";
 import { adminController } from "./controllers/admin.controller";
 import { adminOnly } from "./middleware/adminOnly";
-import { unInterceptedUserHandler } from "./middleware/unInterceptedUserHandler";
+import { unInterceptedUserHandler, signupUserHandler } from "./middleware/unInterceptedUserHandler";
 import { interceptedUserHandler } from "./middleware/interceptedUserHandler";
 
 export async function registerRoutes(app: Express): Promise<void> {
@@ -15,6 +15,7 @@ export async function registerRoutes(app: Express): Promise<void> {
     // Auth Routes                                         
     app.get("/api/auth/user", interceptedUserHandler, authController.getUser);                            // gets user info from the auth token
     app.get("/api/auth/guest", unInterceptedUserHandler);                                                 // creates a guest user and returns tokens
+    app.post("/api/auth/signup", signupUserHandler, authController.signup);                              // signup endpoint - converts guest to user or creates new user
 
     // Stocks Routes (general stock data - not user-specific)
     app.get("/api/stocks/search", stocksController.searchStocksByPrefix);  // search NASDAQ tickers by prefix
@@ -36,7 +37,7 @@ export async function registerRoutes(app: Express): Promise<void> {
 
     // Tracking Routes
     app.post("/api/track/pageview", interceptedUserHandler, trackController.trackPageview);                                 // track pageview
-    
+
     // Admin Routes
     // app.get("/api/admin/check", adminController.checkAdmin);                                        // check if user is admin
     app.get("/api/admin/metrics", interceptedUserHandler, adminOnly, adminController.getAdminMetrics);                                 // gets admin dashboard metrics
