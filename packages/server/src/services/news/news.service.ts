@@ -30,6 +30,12 @@ export default class NewsService implements INewsService {
         return Object.values(newsSummaries).flat().sort((a: NewsSummary, b: NewsSummary) => b.publishDate.getTime() - a.publishDate.getTime()).slice(0, 50);
     }
 
+    async getNewsSummariesPage(userId: string, limit: number, offset: number, ticker?: string): Promise<{ articles: NewsSummary[]; total: number }> {
+        const userHoldings = await this.holdingsRepository.getUserHoldings(userId);
+        const tickers = userHoldings.map((holding: Holding) => holding.ticker);
+        return await this.newsRepository.getNewsSummariesPageByTickers(tickers, limit, offset, ticker);
+    }
+
     async addNewsSummary(newsArticles: NewsArticle[]): Promise<void> {
         const newsSummaries: NewsSummary[] = await Promise.all(newsArticles.map(async (newsArticle: NewsArticle) => {
             const systemPrompt: string = `You are a financial analyst assistant. Analyze news articles about stocks and provide:

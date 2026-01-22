@@ -6,14 +6,15 @@ import { PortfolioChart } from "@/components/PortfolioChart";
 import { AddStockForm } from "@/components/AddStockForm";
 import { Skeleton } from "@/components/ui/skeleton";
 
-interface Stock {
+// Types matching backend domain types
+interface Quote {
   ticker: string;
   companyName: string;
   price: number;
   changePercent: number;
   shares: number;
-  purchasePrice?: string;
-  purchaseDate?: string;
+  purchasePrice: number;
+  purchaseDate: Date;
 }
 
 interface PortfolioStats {
@@ -48,16 +49,60 @@ interface StockChartData {
 export default function Dashboard() {
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
 
-  const { data: stocks, isLoading: stocksLoading } = useQuery<Stock[]>({
-    queryKey: ["/api/stocks"],
+  const { data: stocks, isLoading: stocksLoading } = useQuery<Quote[]>({
+    queryKey: ["/api/portfolio/quotes"],
+    queryFn: async () => {
+      const res = await fetch("/api/portfolio/quotes", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch quotes");
+      const data = await res.json();
+      // Parse purchaseDate from string to Date
+      return data.map((quote: Omit<Quote, "purchaseDate"> & { purchaseDate: string }) => ({
+        ...quote,
+        purchaseDate: new Date(quote.purchaseDate),
+      }));
+    },
   });
 
   const { data: portfolioStats, isLoading: statsLoading } = useQuery<PortfolioStats>({
     queryKey: ["/api/portfolio/overview"],
   });
 
+  // Backend returns Record<string, Record<ChartPeriod, Candle[]>>
+  // Transform to StockChartData[] format for chart components
   const { data: portfolioCharts, isLoading: chartsLoading } = useQuery<StockChartData[]>({
     queryKey: ["/api/portfolio/charts"],
+    queryFn: async () => {
+      const res = await fetch("/api/portfolio/charts", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch charts");
+      const chartsData: Record<string, Record<string, Array<{
+        ticker: string;
+        open: number;
+        high: number;
+        low: number;
+        close: number;
+        volume: number;
+        date: string; // Date serialized as string in JSON
+      }>>> = await res.json();
+      
+      // Transform to array format
+      return Object.entries(chartsData).map(([ticker, periods]) => {
+        const stock = stocks?.find(s => s.ticker === ticker);
+        const chartDataSet: ChartDataSet = {
+          "1D": (periods["1D"] || []).map(c => ({ date: c.date, price: c.close })),
+          "1W": (periods["1W"] || []).map(c => ({ date: c.date, price: c.close })),
+          "1M": (periods["1M"] || []).map(c => ({ date: c.date, price: c.close })),
+          "1Y": (periods["1Y"] || []).map(c => ({ date: c.date, price: c.close })),
+          "5Y": (periods["5Y"] || []).map(c => ({ date: c.date, price: c.close })),
+          "ALL": (periods["ALL"] || []).map(c => ({ date: c.date, price: c.close })),
+        };
+        return {
+          ticker,
+          companyName: stock?.companyName || ticker,
+          data: chartDataSet,
+        };
+      });
+    },
+    enabled: !!stocks,
   });
 
   const handleStockChange = (ticker: string) => {
@@ -112,7 +157,7 @@ export default function Dashboard() {
             </div>
           ) : stocks && stocks.length > 0 ? (
             <div className="space-y-3">
-              {stocks.map((stock: Stock) => (
+              {stocks.map((stock: Quote) => (
                 <StockCard
                   key={stock.ticker}
                   ticker={stock.ticker}

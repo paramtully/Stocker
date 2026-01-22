@@ -1,7 +1,7 @@
 import { NewsSummary, Sentiment } from "@stocker/domain/news";
 import { DbInsertNewsSummary, DbNewsSummary, newsSummaries } from "@stocker/db/schema/newsSummary.schema";
 import { db } from "@stocker/db/db";
-import { eq, desc, inArray, asc, and } from "drizzle-orm";
+import { eq, desc, inArray, asc, and, count } from "drizzle-orm";
 import NewsRepository from "../../interfaces/news/news.repository";
 
 export default class NewsDrizzleRepository implements NewsRepository {
@@ -38,6 +38,33 @@ export default class NewsDrizzleRepository implements NewsRepository {
             acc[dbNewsSummary.ticker] = [...(acc[dbNewsSummary.ticker] || []), this.toDomainNewsSummary(dbNewsSummary)];
             return acc;
         }, {} as Record<string, NewsSummary[]>);
+    }
+
+    async getNewsSummariesPageByTickers(tickers: string[], limit: number, offset: number, ticker?: string): Promise<{ articles: NewsSummary[]; total: number }> {
+        // Build where conditions
+        const conditions = ticker 
+            ? and(inArray(newsSummaries.ticker, tickers), eq(newsSummaries.ticker, ticker))
+            : inArray(newsSummaries.ticker, tickers);
+
+        // Get total count
+        const totalResult = await db
+            .select({ count: count() })
+            .from(newsSummaries)
+            .where(conditions);
+        const total = totalResult[0]?.count ?? 0;
+
+        // Get paginated articles
+        const dbNewsSummaries: DbNewsSummary[] = await db
+            .select()
+            .from(newsSummaries)
+            .where(conditions)
+            .orderBy(desc(newsSummaries.publishDate))
+            .limit(limit)
+            .offset(offset);
+
+        const articles = dbNewsSummaries.map(this.toDomainNewsSummary);
+
+        return { articles, total };
     }
 
     async insertNewsSummary(news: NewsSummary[]): Promise<void> {

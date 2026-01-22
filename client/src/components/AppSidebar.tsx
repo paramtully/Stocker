@@ -44,10 +44,15 @@ export function AppSidebar() {
   const [location] = useLocation();
   const { user, isAuthenticated, isLoading } = useAuth();
   
-  const { data: adminCheck } = useQuery<{ isAdmin: boolean }>({
-    queryKey: ["/api/admin/check"],
+  // Check admin status by attempting to fetch admin metrics
+  // 401 response means user is not admin
+  const { data: adminMetrics, error: adminError } = useQuery({
+    queryKey: ["/api/admin/metrics"],
     enabled: isAuthenticated,
+    retry: false,
   });
+  
+  const isAdmin = isAuthenticated && adminMetrics && !adminError;
 
   const handleLogin = () => {
     window.location.href = "/api/login";
@@ -114,7 +119,7 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-              {adminCheck?.isAdmin && (
+              {isAdmin && (
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild

@@ -17,16 +17,15 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
-interface Stock {
-  id: string;
+// Types matching backend domain types
+interface Quote {
   ticker: string;
-  companyName: string | null;
+  companyName: string;
+  price: number;
+  changePercent: number;
   shares: number;
-  purchasePrice: string | null;
-  purchaseDate: string | null;
-  currentPrice?: number;
-  priceChange?: number;
-  priceChangePercent?: number;
+  purchasePrice: number;
+  purchaseDate: Date;
 }
 
 interface TickerSuggestion {
@@ -42,8 +41,8 @@ interface AddStockFormProps {
 const suggestionCache = new Map<string, TickerSuggestion[]>();
 
 export function AddStockForm({ onAddStock, onRemoveStock }: AddStockFormProps) {
-  const { data: stocksData } = useQuery<Stock[]>({
-    queryKey: ["/api/stocks"],
+  const { data: stocksData } = useQuery<Quote[]>({
+    queryKey: ["/api/portfolio/quotes"],
   });
   
   const stocks = stocksData?.map(s => s.ticker) || [];
@@ -87,15 +86,20 @@ export function AddStockForm({ onAddStock, onRemoveStock }: AddStockFormProps) {
     setIsLoadingSuggestions(true);
 
     try {
-      const response = await fetch(`/api/tickers/search?q=${encodeURIComponent(upperQuery)}`);
+      const response = await fetch(`/api/stocks/search?q=${encodeURIComponent(upperQuery)}`);
       if (!response.ok) throw new Error("Failed to fetch suggestions");
       
-      const data: TickerSuggestion[] = await response.json();
+      const data: string[] = await response.json();
+      // Convert string array to TickerSuggestion format
+      const suggestions: TickerSuggestion[] = data.map(ticker => ({
+        symbol: ticker,
+        name: ticker, // Backend only returns tickers, use ticker as name
+      }));
       
       if (currentRequestId === requestIdRef.current) {
-        suggestionCache.set(upperQuery, data);
-        setSuggestions(data);
-        setShowSuggestions(data.length > 0);
+        suggestionCache.set(upperQuery, suggestions);
+        setSuggestions(suggestions);
+        setShowSuggestions(suggestions.length > 0);
         setIsLoadingSuggestions(false);
       }
     } catch (error) {
@@ -172,10 +176,10 @@ export function AddStockForm({ onAddStock, onRemoveStock }: AddStockFormProps) {
 
   const addStockMutation = useMutation({
     mutationFn: async (data: { ticker: string; shares: number; purchaseDate: string; purchasePrice?: string }) => {
-      return apiRequest("POST", "/api/stocks", data);
+      return apiRequest("POST", "/api/portfolio/holdings", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/stocks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/portfolio/quotes"] });
       queryClient.invalidateQueries({ queryKey: ["/api/portfolio/overview"] });
       queryClient.invalidateQueries({ queryKey: ["/api/portfolio/charts"] });
       onAddStock?.(pendingTicker);
@@ -196,10 +200,10 @@ export function AddStockForm({ onAddStock, onRemoveStock }: AddStockFormProps) {
 
   const removeStockMutation = useMutation({
     mutationFn: async (ticker: string) => {
-      return apiRequest("DELETE", `/api/stocks/${ticker}`);
+      return apiRequest("DELETE", `/api/portfolio/holdings/${ticker}`);
     },
     onSuccess: (_, ticker) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/stocks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/portfolio/quotes"] });
       queryClient.invalidateQueries({ queryKey: ["/api/portfolio/overview"] });
       queryClient.invalidateQueries({ queryKey: ["/api/portfolio/charts"] });
       onRemoveStock?.(ticker);

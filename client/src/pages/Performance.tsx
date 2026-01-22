@@ -17,16 +17,17 @@ import {
   ReferenceLine,
 } from "recharts";
 import { Badge } from "@/components/ui/badge";
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
 
-interface Stock {
+// Types matching backend domain types
+interface Quote {
   ticker: string;
   companyName: string;
   price: number;
   changePercent: number;
-  shares?: number;
-  purchasePrice?: string;
-  purchaseDate?: string;
+  shares: number;
+  purchasePrice: number;
+  purchaseDate: Date;
 }
 
 interface DataPoint {
@@ -43,6 +44,8 @@ interface ChartDataSet {
   "ALL": DataPoint[];
 }
 
+// Backend returns Record<string, Record<ChartPeriod, Candle[]>>
+// We'll transform it to this format for the chart components
 interface StockChartInfo {
   ticker: string;
   companyName: string;
@@ -67,20 +70,65 @@ export default function Performance() {
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("1M");
 
-  const { data: stocks, isLoading: stocksLoading } = useQuery<Stock[]>({
-    queryKey: ["/api/stocks"],
+  const { data: stocks, isLoading: stocksLoading } = useQuery<Quote[]>({
+    queryKey: ["/api/portfolio/quotes"],
+    queryFn: async () => {
+      const res = await fetch("/api/portfolio/quotes", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch quotes");
+      const data = await res.json();
+      // Parse purchaseDate from string to Date
+      return data.map((quote: Omit<Quote, "purchaseDate"> & { purchaseDate: string }) => ({
+        ...quote,
+        purchaseDate: new Date(quote.purchaseDate),
+      }));
+    },
   });
 
+  // Backend returns Record<string, Record<ChartPeriod, Candle[]>>
+  // Transform to StockChartInfo[] format for chart components
   const { data: portfolioCharts, isLoading: chartsLoading } = useQuery<StockChartInfo[]>({
     queryKey: ["/api/portfolio/charts"],
+    queryFn: async () => {
+      const res = await fetch("/api/portfolio/charts", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch charts");
+      const chartsData: Record<string, Record<string, Array<{
+        ticker: string;
+        open: number;
+        high: number;
+        low: number;
+        close: number;
+        volume: number;
+        date: string; // Date serialized as string in JSON
+      }>>> = await res.json();
+      
+      // Transform to array format
+      return Object.entries(chartsData).map(([ticker, periods]) => {
+        const stock = stocks?.find(s => s.ticker === ticker);
+        const chartDataSet: ChartDataSet = {
+          "1D": (periods["1D"] || []).map(c => ({ date: c.date, price: c.close })),
+          "1W": (periods["1W"] || []).map(c => ({ date: c.date, price: c.close })),
+          "1M": (periods["1M"] || []).map(c => ({ date: c.date, price: c.close })),
+          "1Y": (periods["1Y"] || []).map(c => ({ date: c.date, price: c.close })),
+          "5Y": (periods["5Y"] || []).map(c => ({ date: c.date, price: c.close })),
+          "ALL": (periods["ALL"] || []).map(c => ({ date: c.date, price: c.close })),
+        };
+        return {
+          ticker,
+          companyName: stock?.companyName || ticker,
+          data: chartDataSet,
+        };
+      });
+    },
+    enabled: !!stocks,
   });
 
   const { data: portfolioOverview, isLoading: overviewLoading } = useQuery<{
     totalValue: number;
-    totalChange: number;
-    totalChangePercent: number;
-    dayChange: number;
-    dayChangePercent: number;
+    dailyChange: number;
+    dailyChangePercent: number;
+    totalGain: number;
+    totalGainPercent: number;
+    stockCount: number;
   }>({
     queryKey: ["/api/portfolio/overview"],
   });
@@ -124,10 +172,10 @@ export default function Performance() {
     return { totalValue, totalGainLoss, totalGainLossPercent, todayChange, todayChangePercent };
   };
 
-  const calculateStockMetrics = (stock: Stock) => {
+  const calculateStockMetrics = (stock: Quote) => {
     const shares = stock.shares || 0;
     const currentPrice = stock.price || 0;
-    const purchasePrice = stock.purchasePrice ? parseFloat(stock.purchasePrice) : currentPrice;
+    const purchasePrice = stock.purchasePrice || currentPrice;
     
     const stockValue = shares * currentPrice;
     const stockCost = shares * purchasePrice;
@@ -149,10 +197,10 @@ export default function Performance() {
   const portfolioMetrics = portfolioOverview 
     ? {
         totalValue: portfolioOverview.totalValue ?? 0,
-        totalGainLoss: portfolioOverview.totalChange ?? 0,
-        totalGainLossPercent: portfolioOverview.totalChangePercent ?? 0,
-        todayChange: portfolioOverview.dayChange ?? 0,
-        todayChangePercent: portfolioOverview.dayChangePercent ?? 0,
+        totalGainLoss: portfolioOverview.totalGain ?? 0,
+        totalGainLossPercent: portfolioOverview.totalGainPercent ?? 0,
+        todayChange: portfolioOverview.dailyChange ?? 0,
+        todayChangePercent: portfolioOverview.dailyChangePercent ?? 0,
       }
     : calculatedMetrics;
 
@@ -289,7 +337,7 @@ export default function Performance() {
                 <div className="min-w-0">
                   <p className="text-xs text-muted-foreground">Purchase</p>
                   <p className="text-base md:text-lg font-bold font-mono truncate" data-testid="text-purchase-price">
-                    ${parseFloat(selectedStock.purchasePrice || "0").toFixed(2)}
+                    ${(selectedStock.purchasePrice || 0).toFixed(2)}
                   </p>
                 </div>
                 <div className="text-muted-foreground shrink-0">→</div>
@@ -314,11 +362,11 @@ export default function Performance() {
             {!isAllStocks && selectedStock?.purchaseDate && (
               <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <Badge variant="outline" className="font-mono text-xs" data-testid="badge-purchase-date">
-                  Bought: {format(parseISO(selectedStock.purchaseDate), "MMM d, yyyy")}
+                  Bought: {format(selectedStock.purchaseDate, "MMM d, yyyy")}
                 </Badge>
                 {selectedStock.purchasePrice && (
                   <Badge variant="outline" className="font-mono text-xs" data-testid="badge-purchase-price">
-                    @ ${parseFloat(selectedStock.purchasePrice).toFixed(2)}
+                    @ ${selectedStock.purchasePrice.toFixed(2)}
                   </Badge>
                 )}
                 {stockMetrics && (
@@ -351,9 +399,9 @@ export default function Performance() {
           {chartsLoading ? (
             <Skeleton className="h-80" />
           ) : displayStocks.length > 0 ? (
-            (() => {
+              (() => {
               const purchaseDateFormatted = !isAllStocks && selectedStock?.purchaseDate 
-                ? format(parseISO(selectedStock.purchaseDate), "MMM d")
+                ? format(selectedStock.purchaseDate, "MMM d")
                 : null;
               const showPurchaseLine = purchaseDateFormatted && 
                 mergedChartData.some(d => d.date === purchaseDateFormatted);
@@ -489,7 +537,7 @@ export default function Performance() {
                         <div>
                           <p className="text-xs text-muted-foreground">Purchase</p>
                           <p className="font-mono font-medium" data-testid={`text-purchase-${stock.ticker}`}>
-                            ${parseFloat(stock.purchasePrice || "0").toFixed(2)}
+                            ${(stock.purchasePrice || 0).toFixed(2)}
                           </p>
                         </div>
                         <div>

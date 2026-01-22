@@ -68,22 +68,22 @@ export default function AdminDashboard() {
   const { user, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
 
-  const { data: adminCheck, isLoading: adminCheckLoading } = useQuery<{ isAdmin: boolean }>({
-    queryKey: ["/api/admin/check"],
-  });
-
-  const { data: metrics, isLoading: metricsLoading } = useQuery<AdminMetrics>({
+  const { data: metrics, isLoading: metricsLoading, error: metricsError } = useQuery<AdminMetrics>({
     queryKey: ["/api/admin/metrics"],
-    enabled: !!adminCheck?.isAdmin,
+    retry: false,
   });
 
   useEffect(() => {
-    if (!authLoading && !adminCheckLoading && !adminCheck?.isAdmin) {
-      setLocation("/");
+    // If metrics query returns 401 or fails, user is not admin
+    if (!authLoading && !metricsLoading) {
+      const isUnauthorized = metricsError instanceof Error && metricsError.message.includes("401");
+      if (isUnauthorized || (!metrics && metricsError)) {
+        setLocation("/");
+      }
     }
-  }, [authLoading, adminCheckLoading, adminCheck, setLocation]);
+  }, [authLoading, metricsLoading, metricsError, metrics, setLocation]);
 
-  if (authLoading || adminCheckLoading) {
+  if (authLoading || metricsLoading) {
     return (
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
@@ -105,7 +105,13 @@ export default function AdminDashboard() {
     );
   }
 
-  if (!adminCheck?.isAdmin) {
+  // If we got an error (like 401), user is not admin
+  if (metricsError) {
+    return null;
+  }
+  
+  // If no metrics and not loading, user is not admin
+  if (!metricsLoading && !metrics) {
     return null;
   }
 

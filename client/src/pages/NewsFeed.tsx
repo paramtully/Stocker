@@ -6,28 +6,33 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Newspaper, Loader2 } from "lucide-react";
+import { format } from "date-fns";
 
-interface Stock {
+// Types matching backend domain types
+interface Quote {
   ticker: string;
   companyName: string;
+  price: number;
+  changePercent: number;
+  shares: number;
+  purchasePrice: number;
+  purchaseDate: Date;
 }
 
-interface NewsArticle {
-  id: string;
+interface NewsSummary {
   ticker: string;
   source: string;
-  publishedAt: string;
-  publishedAtFormatted: string;
   headline: string;
+  articleUrl: string;
+  publishDate: Date;
   summary: string;
   impactAnalysis: string[];
   recommendedActions: string[];
-  articleUrl: string;
   sentiment: "positive" | "negative" | "neutral";
 }
 
 interface NewsResponse {
-  articles: NewsArticle[];
+  articles: NewsSummary[];
   total: number;
   hasMore: boolean;
 }
@@ -42,8 +47,8 @@ export default function NewsFeed() {
   const [total, setTotal] = useState(0);
   const loaderRef = useRef<HTMLDivElement>(null);
 
-  const { data: stocks, isLoading: stocksLoading } = useQuery<Stock[]>({
-    queryKey: ["/api/stocks"],
+  const { data: stocks, isLoading: stocksLoading } = useQuery<Quote[]>({
+    queryKey: ["/api/portfolio/quotes"],
   });
 
   const { data: newsData, isLoading: newsLoading, isFetching } = useQuery<NewsResponse>({
@@ -58,7 +63,15 @@ export default function NewsFeed() {
       }
       const response = await fetch(`/api/news?${params}`);
       if (!response.ok) throw new Error("Failed to fetch news");
-      return response.json();
+      const data = await response.json();
+      // Parse publishDate from string to Date
+      return {
+        ...data,
+        articles: data.articles.map((article: Omit<NewsSummary, "publishDate"> & { publishDate: string }) => ({
+          ...article,
+          publishDate: new Date(article.publishDate),
+        })),
+      };
     },
   });
 
@@ -176,11 +189,11 @@ export default function NewsFeed() {
           </p>
           {articles.map((article) => (
             <NewsArticleCard
-              key={article.id}
-              id={article.id}
+              key={article.articleUrl}
+              id={article.articleUrl}
               ticker={article.ticker}
               source={article.source}
-              publishedAt={article.publishedAtFormatted}
+              publishedAt={format(article.publishDate, "MMM d, yyyy 'at' h:mm a")}
               headline={article.headline}
               summary={article.summary}
               impactAnalysis={article.impactAnalysis}
