@@ -1,5 +1,5 @@
 {
-  "name": "@stocker/backfillFetcher",
+  "name": "@stocker/history-ingestion",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
@@ -12,8 +12,7 @@
     "@stocker/domain": "*",
     "@stocker/infra": "*",
     "@stocker/repositories": "*",
-    "@stocker/bucket-repositories": "*",
-    "@stocker/server": "*"
+    "@stocker/bucketRepository": "*"
   },
   "devDependencies": {
     "typescript": "~5.9.3",

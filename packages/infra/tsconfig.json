@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "outDir": "./dist",
+    "rootDir": "./src",
     "module": "ESNext",
     "target": "ES2022",
     "moduleResolution": "bundler",
@@ -12,10 +13,7 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "@stocker/domain/*": ["../domain/src/*"],
-      "@stocker/repositories/*": ["../repositories/src/*"],
-      "@stocker/db/*": ["../db/src/*"],
-      "@stocker/infra": ["."]
+      "@stocker/domain/*": ["../domain/src/*"]
     }
   },
   "include": ["src/**/*"],

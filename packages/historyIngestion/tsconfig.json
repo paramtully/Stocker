@@ -6,6 +6,8 @@
     "target": "ES2022",
     "moduleResolution": "bundler",
     "strict": true,
+    "declaration": true,
+    "declarationMap": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -15,7 +17,7 @@
       "@stocker/db/*": ["../db/src/*"],
       "@stocker/repositories/*": ["../repositories/src/*"],
       "@stocker/infra/*": ["../infra/src/*"],
-      "@stocker/bucketRepository/*": ["../bucketRepository/src/*"],
+      "@stocker/bucketRepository/*": ["../bucketRepository/src/*"]
     }
   },
   "include": ["src/**/*"],

@@ -9,6 +9,7 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
+    "@stocker/domain": "*",
     "@stocker/bucketRepository": "*",
     "@stocker/repositories": "*",
     "@stocker/db": "*"

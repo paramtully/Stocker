@@ -1,19 +1,22 @@
-
 {
-  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src",
-    "composite": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "module": "ESNext",
+    "target": "ES2022",
+    "moduleResolution": "bundler",
+    "strict": true,
     "declaration": true,
     "declarationMap": true,
-    "emitDeclarationOnly": false,
-    "noEmit": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
     "paths": {
-      "@stocker/domain": ["../../packages/domain/src"],
-      "@stocker/db": ["../../packages/db/src"],
+      "@stocker/domain/*": ["../domain/src/*"],
+      "@stocker/db/*": ["../db/src/*"]
     }
   },
-  "include": ["src"],
-  "exclude": ["dist", "node_modules", "**/*.test.ts"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }

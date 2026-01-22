@@ -6,11 +6,11 @@
     "target": "ES2022",
     "moduleResolution": "bundler",
     "strict": true,
+    "declaration": true,
+    "declarationMap": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "declaration": true,
-    "declarationMap": true,
     "baseUrl": ".",
     "paths": {
       "@stocker/domain/*": ["../domain/src/*"],

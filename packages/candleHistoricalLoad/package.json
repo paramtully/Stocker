@@ -10,6 +10,7 @@
     "dev": "tsx src/index.ts"
   },
   "dependencies": {
+    "@stocker/domain": "*",
     "@stocker/infra": "*",
     "@stocker/bucketRepository": "*",
     "@stocker/repositories": "*"
