@@ -56,7 +56,7 @@ export default class UsersDrizzleRepository implements UsersRepository {
   }
 
   async getUserById(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    const [user] = await db.select().from(users).where(and(or(eq(users.role, "user"), eq(users.role, "admin")), eq(users.id, id))).limit(1);
     return user ? this.toDomainUser(user as DbUser) : undefined;
   }
 
@@ -73,12 +73,12 @@ export default class UsersDrizzleRepository implements UsersRepository {
   async getSignupsToday(): Promise<number> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const result = await db.select({ count: count() }).from(users).where(gte(users.createdAt, today));
+    const result = await db.select({ count: count() }).from(users).where(and(or(eq(users.role, "user"), eq(users.role, "admin")), gte(users.createdAt, today)));
     return result[0]?.count || 0;
   }
 
   async getSignupsTotal(): Promise<number> {
-    const result = await db.select({ count: count() }).from(users);
+    const result = await db.select({ count: count() }).from(users).where(or(eq(users.role, "user"), eq(users.role, "admin")));
     return result[0]?.count || 0;
   }
 
