@@ -52,7 +52,7 @@ export async function handler(): Promise<void> {
                 eq(users.role, "guest"),
                 inArray(users.id, expiredUserIds)
             ));
-        
+
         console.log(`✓ Deleted ${expiredUserIds.length} users from database`);
 
         // Step 2: Delete from Cognito in batches with rate limiting
