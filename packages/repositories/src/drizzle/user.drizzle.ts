@@ -20,9 +20,9 @@ export default class UsersDrizzleRepository implements UsersRepository {
       role: userData.role,
     };
     const [user] = await db
-    .insert(users)
-    .values(dbUser)
-    .onConflictDoUpdate({
+      .insert(users)
+      .values(dbUser)
+      .onConflictDoUpdate({
         target: users.id,
         set: {
           ...userData,
@@ -50,9 +50,9 @@ export default class UsersDrizzleRepository implements UsersRepository {
     const dbUsers: DbUser[] = await db
       .select()
       .from(users)
-      .where(and(eq(users.emailEnabled, true), eq(users.emailDeliveryHour, hour), not(eq(users.role, "guest")))); 
-      
-      return dbUsers.map(this.toDomainUser);
+      .where(and(eq(users.emailEnabled, true), eq(users.emailDeliveryHour, hour), not(eq(users.role, "guest"))));
+
+    return dbUsers.map(this.toDomainUser);
   }
 
   async getUserById(id: string): Promise<User | undefined> {

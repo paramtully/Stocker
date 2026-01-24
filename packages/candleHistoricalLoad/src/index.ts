@@ -33,7 +33,7 @@ async function loadCheckpoint(): Promise<Checkpoint | null> {
 
 async function saveErrorLog(errorLog: any[]): Promise<void> {
     if (errorLog.length === 0) return;
-    
+
     const bucketService = new BucketS3();
     const key = `errors/candles/provider-errors-${Date.now()}.json`;
     await bucketService.putObject(key, JSON.stringify(errorLog, null, 2), "application/json");
@@ -41,15 +41,15 @@ async function saveErrorLog(errorLog: any[]): Promise<void> {
 
 async function main() {
     console.log("Starting historical candle data load...");
-    
+
     try {
         // Get all stocks from database
         const stockRepository: StocksRepository = new StocksDrizzleRepository();
         const stocks = await stockRepository.getStocks();
         const tickers = stocks.map(stock => stock.ticker);
-        
+
         console.log(`Found ${tickers.length} stocks to load`);
-        
+
         if (tickers.length === 0) {
             console.log("No stocks found in database. Please add stocks first.");
             process.exit(1);
@@ -58,7 +58,7 @@ async function main() {
         // Load checkpoint if exists
         let checkpoint = await loadCheckpoint();
         const startIndex = checkpoint ? tickers.findIndex(t => t === checkpoint!.lastProcessedTicker) + 1 : 0;
-        
+
         if (checkpoint) {
             console.log(`Resuming from checkpoint: ${checkpoint.lastProcessedTicker} (${startIndex}/${tickers.length})`);
         } else {
@@ -82,7 +82,7 @@ async function main() {
             try {
                 // Fetch historical candles with fallback
                 const candles = await candleService.getHistoricalCandles([ticker]);
-                
+
                 if (candles[ticker] && candles[ticker].length > 0) {
                     // Save to S3 (year-based files)
                     const allCandles = candles[ticker];
@@ -96,7 +96,7 @@ async function main() {
                 checkpoint.lastProcessedTicker = ticker;
                 checkpoint.processedTickers = i + 1;
                 checkpoint.lastUpdated = new Date().toISOString();
-                
+
                 // Save checkpoint every 10 tickers
                 if ((i + 1) % 10 === 0) {
                     await saveCheckpoint(checkpoint);
