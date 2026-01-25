@@ -6,6 +6,14 @@ module "vpc" {
   tags        = local.required_tags
 }
 
+module "cognito" {
+  source = "../../modules/cognito"
+
+  name_prefix = local.name_prefix
+  tags        = local.required_tags
+  region = var.region
+}
+
 module "api" {
   source = "../../modules/api"
 
@@ -17,8 +25,8 @@ module "api" {
   subnet_ids = module.vpc.private_subnet_ids
 
   // Auth configuration
-  domain_name           = var.domain_name
-  cognito_app_client_id = var.cognito_app_client_id
+  domain_name           = module.cognito.domain_name
+  cognito_app_client_id = module.cognito.app_client_id
 
   // Database configuration
   database_url = module.database.database_url

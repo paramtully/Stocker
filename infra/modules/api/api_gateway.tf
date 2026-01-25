@@ -18,9 +18,6 @@ resource "aws_apigatewayv2_authorizer" "jwt_authorizer" {
     issuer   = "https://${var.domain_name}"
     audience = [var.cognito_app_client_id]
   }
-  tags = merge(var.tags, {
-    Name = "${var.name_prefix}-jwt-authorizer"
-  })
 }
 
 resource "aws_apigatewayv2_integration" "lambda_integration" {

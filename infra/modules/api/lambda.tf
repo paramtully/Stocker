@@ -65,9 +65,12 @@ resource "aws_lambda_function" "api_lambda" {
     security_group_ids = [aws_security_group.lambda_sg.id]
   }
 
-   environment {
+  environment {
     variables = {
-      DATABASE_URL = var.database_url  // Pass from database module output
+      DATABASE_URL         = var.database_url
+      AWS_REGION           = data.aws_region.current.name
+      COGNITO_USER_POOL_ID = var.cognito_user_pool_id
+      COGNITO_CLIENT_ID    = var.cognito_app_client_id
     }
   }
 
@@ -75,6 +78,9 @@ resource "aws_lambda_function" "api_lambda" {
     Name = "${var.name_prefix}-api-lambda"
   })
 }
+
+// Add data source for current region
+data "aws_region" "current" {}
 
 // Permission for API Gateway to invoke Lambda
 resource "aws_lambda_permission" "lambda_api_gateway_permission" {

@@ -32,3 +32,8 @@ variable "database_url" {
   type        = string
   description = "Database URL for Lambda environment variable"
 }
+
+variable "cognito_user_pool_id" {
+  type        = string
+  description = "Cognito User Pool ID for Lambda environment variable"
+}
