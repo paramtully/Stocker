@@ -375,7 +375,7 @@ export default class CandleBucketS3ParquetRepository implements CandleBucketRepo
             if (buffer && buffer.length > 0) {
                 existingCandles = await this.parquetToCandles(buffer);
             }
-        } catch (error) {
+        } catch {
             // File doesn't exist yet (first day of year), that's okay
             console.log(`Year file ${year} doesn't exist yet, creating new file`);
         }
