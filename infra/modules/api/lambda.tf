@@ -65,6 +65,12 @@ resource "aws_lambda_function" "api_lambda" {
     security_group_ids = [aws_security_group.lambda_sg.id]
   }
 
+   environment {
+    variables = {
+      DATABASE_URL = var.database_url  // Pass from database module output
+    }
+  }
+
   tags = merge(var.tags, {
     Name = "${var.name_prefix}-api-lambda"
   })

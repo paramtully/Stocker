@@ -1,7 +1,7 @@
 variable "region" {
     type        = string
     description = "AWS region"
-    default     = "us-east-1"
+    default     = "us-west-2"
 }
 
 variable "vpc_cidr" {
@@ -18,5 +18,11 @@ variable "domain_name" {
 variable "cognito_app_client_id" {
     type        = string
     description = "Cognito app client ID for JWT audience"
+}
+
+variable "master_password" {
+    type        = string
+    description = "Master password for RDS database"
+    sensitive   = true
 }
 

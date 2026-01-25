@@ -27,3 +27,8 @@ variable "subnet_ids" {
   type        = list(string)
   description = "List of subnet IDs for Lambda VPC configuration"
 }
+
+variable "database_url" {
+  type        = string
+  description = "Database URL for Lambda environment variable"
+}

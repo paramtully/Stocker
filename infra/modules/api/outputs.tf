@@ -12,3 +12,8 @@ output "api_gateway_arn" {
     description = "ARN of the API Gateway"
     value       = aws_apigatewayv2_api.api_gateway.arn
 }
+
+output "lambda_security_group_id" {
+  description = "Security group ID of API Lambda function"
+  value       = aws_security_group.lambda_sg.id
+}
