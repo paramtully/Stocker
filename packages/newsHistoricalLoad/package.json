@@ -13,7 +13,6 @@
     "@stocker/domain": "*",
     "@stocker/infra": "*",
     "@stocker/bucketRepository": "*",
-    "@stocker/repositories": "*"
   },
   "devDependencies": {
     "typescript": "~5.9.3",

@@ -1,11 +1,9 @@
 import { NewsFallbackService } from "@stocker/infra/external/news";
 import { NewsBucketS3ParquetRepository } from "@stocker/bucketRepository";
 import { NewsSummarizationService } from "@stocker/infra/services";
-import StocksRepository from "@stocker/repositories/interfaces/stock/stocks.repository";
-import { StocksDrizzleRepository } from "@stocker/repositories/drizzle/stock";
 import { BucketS3 } from "@stocker/infra/external/bucket";
-import NewsArticle from "@stocker/domain/news/newsArticle";
-import NewsSummary from "@stocker/domain/news/newsSummary";
+import StockExternalService from "@stocker/infra/external/stock/stock.external";
+import StockYFinance from "@stocker/infra/external/stock/stock.yfinance";
 
 interface Checkpoint {
     lastProcessedTicker?: string;
@@ -38,7 +36,7 @@ async function loadCheckpoint(): Promise<Checkpoint | null> {
 
 async function saveErrorLog(errorLog: any[], type: 'news' | 'llm'): Promise<void> {
     if (errorLog.length === 0) return;
-    
+
     const bucketService = new BucketS3();
     const key = `errors/news/${type === 'news' ? 'raw' : 'summarization'}/provider-errors-${Date.now()}.json`;
     await bucketService.putObject(key, JSON.stringify(errorLog, null, 2), "application/json");
@@ -46,24 +44,16 @@ async function saveErrorLog(errorLog: any[], type: 'news' | 'llm'): Promise<void
 
 async function main() {
     console.log("Starting historical news data load...");
-    
+
     try {
-        // Get all stocks from database
-        const stockRepository: StocksRepository = new StocksDrizzleRepository();
-        const stocks = await stockRepository.getStocks();
-        const tickers = stocks.map(stock => stock.ticker);
-        
-        console.log(`Found ${tickers.length} stocks to load`);
-        
-        if (tickers.length === 0) {
-            console.log("No stocks found in database. Please add stocks first.");
-            process.exit(1);
-        }
+        // Get all tickers
+        const stockService: StockExternalService = new StockYFinance();
+        const tickers = await stockService.getTickers();
 
         // Load checkpoint if exists
         let checkpoint = await loadCheckpoint();
         const startIndex = checkpoint ? tickers.findIndex(t => t === checkpoint!.lastProcessedTicker) + 1 : 0;
-        
+
         if (checkpoint) {
             console.log(`Resuming from checkpoint: ${checkpoint.lastProcessedTicker} (${startIndex}/${tickers.length})`);
         } else {
@@ -120,7 +110,7 @@ async function main() {
                 checkpoint.lastProcessedTicker = ticker;
                 checkpoint.processedTickers = i + 1;
                 checkpoint.lastUpdated = new Date().toISOString();
-                
+
                 // Save checkpoint every 10 tickers
                 if ((i + 1) % 10 === 0) {
                     await saveCheckpoint(checkpoint);

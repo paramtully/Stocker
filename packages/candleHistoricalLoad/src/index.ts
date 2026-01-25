@@ -1,8 +1,7 @@
-import { CandleFallbackService } from "@stocker/infra/external/candle";
+import { CandleExternalService, CandleFallbackService } from "@stocker/infra/external/candle";
 import { CandleBucketS3ParquetRepository } from "@stocker/bucketRepository";
-import StocksRepository from "@stocker/repositories/interfaces/stock/stocks.repository";
-import { StocksDrizzleRepository } from "@stocker/repositories/drizzle/stock";
 import { BucketS3 } from "@stocker/infra/external/bucket";
+import { CandleBucketRepository } from "@stocker/bucketRepository";
 
 interface Checkpoint {
     lastProcessedTicker?: string;
@@ -43,15 +42,17 @@ async function main() {
     console.log("Starting historical candle data load...");
 
     try {
-        // Get all stocks from database
-        const stockRepository: StocksRepository = new StocksDrizzleRepository();
-        const stocks = await stockRepository.getStocks();
-        const tickers = stocks.map(stock => stock.ticker);
 
-        console.log(`Found ${tickers.length} stocks to load`);
+        // Initialize services
+        const candleService: CandleFallbackService = new CandleFallbackService();
+        const candleBucketRepo: CandleBucketRepository = new CandleBucketS3ParquetRepository();
+
+
+        // Get all stocks
+        const tickers = await candleService.getCurrentlyListedNasdaqTickers();
 
         if (tickers.length === 0) {
-            console.log("No stocks found in database. Please add stocks first.");
+            console.log("No tickers found");
             process.exit(1);
         }
 
@@ -69,10 +70,6 @@ async function main() {
                 processedTickers: 0,
             };
         }
-
-        // Initialize services
-        const candleService = new CandleFallbackService();
-        const candleBucketRepo = new CandleBucketS3ParquetRepository();
 
         // Process tickers
         for (let i = startIndex; i < tickers.length; i++) {

@@ -16,7 +16,6 @@
       "@stocker/domain/*": ["../domain/src/*"],
       "@stocker/infra/*": ["../infra/src/*"],
       "@stocker/bucketRepository/*": ["../bucketRepository/src/*"],
-      "@stocker/repositories/*": ["../repositories/src/*"]
     }
   },
   "include": ["src/**/*"],

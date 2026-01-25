@@ -10,7 +10,7 @@ RUN npm ci && npm cache clean --force
 COPY packages/domain ./packages/domain
 COPY packages/infra ./packages/infra
 COPY packages/bucketRepository ./packages/bucketRepository
-COPY packages/candleHistoricalLoad ./packages/candleHistoricalLoad
+COPY packages/newsHistoricalLoad ./packages/newsHistoricalLoad
 
 # Build workspace packages in dependency order
 WORKDIR /app/packages/domain
@@ -22,9 +22,8 @@ RUN npm run build
 WORKDIR /app/packages/bucketRepository
 RUN npm run build
 
-
 # Build the main package
-WORKDIR /app/packages/candleHistoricalLoad
+WORKDIR /app/packages/newsHistoricalLoad
 RUN npm run build
 
 # Create non-root user for security
