@@ -1,18 +1,18 @@
 // ECS Task Definition
-resource "aws_ecs_task_definition" "candle_load_task" {
-  family                   = "${var.name_prefix}-candle-load-task"
+resource "aws_ecs_task_definition" "news_load_task" {
+  family                   = "${var.name_prefix}-news-load-task"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = 512
   memory                   = 1024
 
-  execution_role_arn = aws_iam_role.candle_load_execution_role.arn
-  task_role_arn      = aws_iam_role.candle_load_task_role.arn
+  execution_role_arn = aws_iam_role.news_load_execution_role.arn
+  task_role_arn      = aws_iam_role.news_load_task_role.arn
 
   container_definitions = jsonencode([
     {
-      name  = "candle-load"
-      image = var.ecr_repository_url != "" ? "${var.ecr_repository_url}:latest" : "stocker/candle-historical-load:latest"
+      name  = "news-load"
+      image = var.ecr_repository_url != "" ? "${var.ecr_repository_url}:latest" : "stocker/news-historical-load:latest"
 
       essential = true
 
@@ -30,7 +30,7 @@ resource "aws_ecs_task_definition" "candle_load_task" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = aws_cloudwatch_log_group.candle_load_logs.name
+          "awslogs-group"         = aws_cloudwatch_log_group.news_load_logs.name
           "awslogs-region"        = var.aws_region
           "awslogs-stream-prefix" = "ecs"
         }
@@ -39,13 +39,13 @@ resource "aws_ecs_task_definition" "candle_load_task" {
   ])
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-candle-load-task"
+    Name = "${var.name_prefix}-news-load-task"
   })
 }
 
 // ECR Repository for Docker image
-resource "aws_ecr_repository" "candle_load_repo" {
-  name                 = "${var.name_prefix}/candle-historical-load"
+resource "aws_ecr_repository" "news_load_repo" {
+  name                 = "${var.name_prefix}/news-historical-load"
   image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
@@ -53,14 +53,14 @@ resource "aws_ecr_repository" "candle_load_repo" {
   }
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}/candle-historical-load"
+    Name = "${var.name_prefix}/news-historical-load"
   })
 }
 
 // Security Group for ECS tasks (minimal - just outbound for S3 and internet)
-resource "aws_security_group" "candle_load_sg" {
-  name        = "${var.name_prefix}-candle-load-sg"
-  description = "Security group for candle historical load ECS tasks"
+resource "aws_security_group" "news_load_sg" {
+  name        = "${var.name_prefix}-news-load-sg"
+  description = "Security group for news historical load ECS tasks"
   vpc_id      = var.vpc_id
 
   // Allow outbound traffic (for S3, internet API calls)
@@ -73,13 +73,13 @@ resource "aws_security_group" "candle_load_sg" {
   }
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-candle-load-sg"
+    Name = "${var.name_prefix}-news-load-sg"
   })
 }
 
 // IAM Role for ECS Task Execution (pulls images, writes logs)
-resource "aws_iam_role" "candle_load_execution_role" {
-  name = "${var.name_prefix}-candle-load-execution-role"
+resource "aws_iam_role" "news_load_execution_role" {
+  name = "${var.name_prefix}-news-load-execution-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -93,19 +93,19 @@ resource "aws_iam_role" "candle_load_execution_role" {
   })
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-candle-load-execution-role"
+    Name = "${var.name_prefix}-news-load-execution-role"
   })
 }
 
 // Attach ECS task execution role policy
-resource "aws_iam_role_policy_attachment" "candle_load_execution_policy" {
-  role       = aws_iam_role.candle_load_execution_role.name
+resource "aws_iam_role_policy_attachment" "news_load_execution_policy" {
+  role       = aws_iam_role.news_load_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
 // IAM Role for ECS Task (application permissions - S3 access)
-resource "aws_iam_role" "candle_load_task_role" {
-  name = "${var.name_prefix}-candle-load-task-role"
+resource "aws_iam_role" "news_load_task_role" {
+  name = "${var.name_prefix}-news-load-task-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -119,14 +119,14 @@ resource "aws_iam_role" "candle_load_task_role" {
   })
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-candle-load-task-role"
+    Name = "${var.name_prefix}-news-load-task-role"
   })
 }
 
 // IAM Policy for S3 access
-resource "aws_iam_role_policy" "candle_load_s3_policy" {
-  name = "${var.name_prefix}-candle-load-s3-policy"
-  role = aws_iam_role.candle_load_task_role.id
+resource "aws_iam_role_policy" "news_load_s3_policy" {
+  name = "${var.name_prefix}-news-load-s3-policy"
+  role = aws_iam_role.news_load_task_role.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -149,26 +149,26 @@ resource "aws_iam_role_policy" "candle_load_s3_policy" {
 }
 
 // CloudWatch Log Group
-resource "aws_cloudwatch_log_group" "candle_load_logs" {
-  name              = "/ecs/${var.name_prefix}-candle-load"
+resource "aws_cloudwatch_log_group" "news_load_logs" {
+  name              = "/ecs/${var.name_prefix}-news-load"
   retention_in_days = 7
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-candle-load-logs"
+    Name = "${var.name_prefix}-news-load-logs"
   })
 }
 
 // ECS Service - runs once on deploy, scales to 0 when task completes
-resource "aws_ecs_service" "candle_load_service" {
-  name            = "${var.name_prefix}-candle-load-service"
+resource "aws_ecs_service" "news_load_service" {
+  name            = "${var.name_prefix}-news-load-service"
   cluster         = var.cluster_id
-  task_definition = aws_ecs_task_definition.candle_load_task.arn
+  task_definition = aws_ecs_task_definition.news_load_task.arn
   desired_count   = var.run_on_deploy ? 1 : 0
   launch_type     = "FARGATE"
 
   network_configuration {
     subnets          = var.subnet_ids
-    security_groups  = [aws_security_group.candle_load_sg.id]
+    security_groups  = [aws_security_group.news_load_sg.id]
     assign_public_ip = true
   }
 
@@ -178,14 +178,14 @@ resource "aws_ecs_service" "candle_load_service" {
   }
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-candle-load-service"
+    Name = "${var.name_prefix}-news-load-service"
   })
 }
 
 // Lambda function to scale service to 0 when task completes
 resource "aws_lambda_function" "scale_down_service" {
   filename      = data.archive_file.scale_down_lambda.output_path
-  function_name = "${var.name_prefix}-candle-load-scale-down"
+  function_name = "${var.name_prefix}-news-load-scale-down"
   role          = aws_iam_role.scale_down_lambda_role.arn
   handler       = "index.handler"
   runtime       = "python3.11"
@@ -196,12 +196,12 @@ resource "aws_lambda_function" "scale_down_service" {
   environment {
     variables = {
       CLUSTER_NAME = var.cluster_name
-      SERVICE_NAME = aws_ecs_service.candle_load_service.name
+      SERVICE_NAME = aws_ecs_service.news_load_service.name
     }
   }
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-candle-load-scale-down"
+    Name = "${var.name_prefix}-news-load-scale-down"
   })
 }
 
@@ -241,7 +241,7 @@ EOF
 
 // IAM role for scale-down Lambda
 resource "aws_iam_role" "scale_down_lambda_role" {
-  name = "${var.name_prefix}-candle-load-scale-down-role"
+  name = "${var.name_prefix}-news-load-scale-down-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -255,13 +255,13 @@ resource "aws_iam_role" "scale_down_lambda_role" {
   })
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-candle-load-scale-down-role"
+    Name = "${var.name_prefix}-news-load-scale-down-role"
   })
 }
 
 // IAM policy for Lambda to update ECS service
 resource "aws_iam_role_policy" "scale_down_lambda_policy" {
-  name = "${var.name_prefix}-candle-load-scale-down-policy"
+  name = "${var.name_prefix}-news-load-scale-down-policy"
   role = aws_iam_role.scale_down_lambda_role.id
 
   policy = jsonencode({
@@ -273,7 +273,7 @@ resource "aws_iam_role_policy" "scale_down_lambda_policy" {
           "ecs:UpdateService",
           "ecs:DescribeServices"
         ]
-        Resource = aws_ecs_service.candle_load_service.id
+        Resource = aws_ecs_service.news_load_service.id
       },
       {
         Effect = "Allow"
@@ -290,8 +290,8 @@ resource "aws_iam_role_policy" "scale_down_lambda_policy" {
 
 // EventBridge rule to trigger Lambda when task stops
 resource "aws_cloudwatch_event_rule" "task_stopped" {
-  name        = "${var.name_prefix}-candle-load-task-stopped"
-  description = "Trigger when candle load task stops"
+  name        = "${var.name_prefix}-news-load-task-stopped"
+  description = "Trigger when news load task stops"
 
   event_pattern = jsonencode({
     source      = ["aws.ecs"]
@@ -299,12 +299,12 @@ resource "aws_cloudwatch_event_rule" "task_stopped" {
     detail = {
       clusterArn        = [var.cluster_arn]
       lastStatus        = ["STOPPED"]
-      taskDefinitionArn = [aws_ecs_task_definition.candle_load_task.arn]
+      taskDefinitionArn = [aws_ecs_task_definition.news_load_task.arn]
     }
   })
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-candle-load-task-stopped"
+    Name = "${var.name_prefix}-news-load-task-stopped"
   })
 }
 
@@ -323,3 +323,4 @@ resource "aws_lambda_permission" "allow_eventbridge" {
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.task_stopped.arn
 }
+

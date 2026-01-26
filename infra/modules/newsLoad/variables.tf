@@ -20,7 +20,7 @@ variable "subnet_ids" {
 
 variable "s3_bucket_name" {
   type        = string
-  description = "S3 bucket name for storing candle data"
+  description = "S3 bucket name for storing news data"
 }
 
 variable "aws_region" {
@@ -54,3 +54,4 @@ variable "cluster_arn" {
   type        = string
   description = "ECS cluster ARN to use for EventBridge rules"
 }
+

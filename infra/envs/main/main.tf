@@ -11,7 +11,7 @@ module "cognito" {
 
   name_prefix = local.name_prefix
   tags        = local.required_tags
-  region = var.region
+  region      = var.region
 }
 
 module "api" {
@@ -27,7 +27,7 @@ module "api" {
   // Auth configuration
   domain_name           = module.cognito.domain_name
   cognito_app_client_id = module.cognito.app_client_id
-  cognito_user_pool_id = module.cognito.user_pool_id
+  cognito_user_pool_id  = module.cognito.user_pool_id
 
   // Database configuration
   database_url = module.database.database_url
@@ -57,6 +57,13 @@ module "s3" {
   tags        = local.required_tags
 }
 
+module "ecs_cluster" {
+  source = "../../modules/ecs_cluster"
+
+  name_prefix = local.name_prefix
+  tags        = local.required_tags
+}
+
 module "candle_load" {
   source = "../../modules/candleLoad"
 
@@ -72,4 +79,31 @@ module "candle_load" {
 
   // Region
   aws_region = var.region
+
+  // Shared ECS cluster
+  cluster_id   = module.ecs_cluster.cluster_id
+  cluster_name = module.ecs_cluster.cluster_name
+  cluster_arn  = module.ecs_cluster.cluster_arn
+}
+
+module "news_load" {
+  source = "../../modules/newsLoad"
+
+  name_prefix = local.name_prefix
+  tags        = local.required_tags
+
+  // VPC configuration - using PUBLIC subnets
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.public_subnet_ids
+
+  // S3 configuration
+  s3_bucket_name = module.s3.bucket_name
+
+  // Region
+  aws_region = var.region
+
+  // Shared ECS cluster
+  cluster_id   = module.ecs_cluster.cluster_id
+  cluster_name = module.ecs_cluster.cluster_name
+  cluster_arn  = module.ecs_cluster.cluster_arn
 }
