@@ -26,3 +26,6 @@ dist-ssr
 **/*.env
 
 **/*.tfvars
+
+# Terraform generated files
+**/*.zip

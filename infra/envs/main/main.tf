@@ -27,9 +27,11 @@ module "api" {
   // Auth configuration
   domain_name           = module.cognito.domain_name
   cognito_app_client_id = module.cognito.app_client_id
+  cognito_user_pool_id = module.cognito.user_pool_id
 
   // Database configuration
   database_url = module.database.database_url
+
 }
 
 module "database" {
@@ -46,4 +48,28 @@ module "database" {
 
   // Database credentials
   master_password = var.master_password
+}
+
+module "s3" {
+  source = "../../modules/s3"
+
+  name_prefix = local.name_prefix
+  tags        = local.required_tags
+}
+
+module "candle_load" {
+  source = "../../modules/candleLoad"
+
+  name_prefix = local.name_prefix
+  tags        = local.required_tags
+
+  // VPC configuration - using PUBLIC subnets
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.public_subnet_ids
+
+  // S3 configuration
+  s3_bucket_name = module.s3.bucket_name
+
+  // Region
+  aws_region = var.region
 }

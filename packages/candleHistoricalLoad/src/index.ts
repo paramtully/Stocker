@@ -1,4 +1,4 @@
-import { CandleExternalService, CandleFallbackService } from "@stocker/infra/external/candle";
+import { CandleFallbackService } from "@stocker/infra/external/candle";
 import { CandleBucketS3ParquetRepository } from "@stocker/bucketRepository";
 import { BucketS3 } from "@stocker/infra/external/bucket";
 import { CandleBucketRepository } from "@stocker/bucketRepository";
