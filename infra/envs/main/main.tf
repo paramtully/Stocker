@@ -107,3 +107,37 @@ module "news_load" {
   cluster_name = module.ecs_cluster.cluster_name
   cluster_arn  = module.ecs_cluster.cluster_arn
 }
+
+module "candle_new_listing_ingestion" {
+  source = "../../modules/candleNewListingIngestion"
+
+  name_prefix = local.name_prefix
+  tags        = local.required_tags
+
+  // S3 configuration
+  s3_bucket_name = module.s3.bucket_name
+
+  // Region
+  aws_region = var.region
+}
+
+module "candle_new_listing_s3_to_rds" {
+  source = "../../modules/candleNewListingS3ToRds"
+
+  name_prefix = local.name_prefix
+  tags        = local.required_tags
+
+  // VPC configuration - using PRIVATE subnets
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnet_ids
+
+  // Database configuration
+  database_url = module.database.database_url
+
+  // S3 configuration
+  s3_bucket_name = module.s3.bucket_name
+  s3_bucket_id   = module.s3.bucket_id
+
+  // Region
+  aws_region = var.region
+}
