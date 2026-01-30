@@ -1,8 +1,8 @@
 import LlmExternalService from "./llm.external";
 import LlmOpenAI from "./llm.openAI";
+import LlmGemini from "./llm.gemini";
 // Future: Import other LLM providers as they're added
 // import LlmAnthropic from "./llm.anthropic";
-// import LlmGemini from "./llm.gemini";
 
 /**
  * Fallback service that tries multiple LLM providers
@@ -16,10 +16,10 @@ export default class LLMFallbackService implements LlmExternalService {
     constructor() {
         // Order matters - try most reliable/cheapest first
         this.providers = [
+            new LlmGemini(),
             new LlmOpenAI(),
             // Add other providers here as they're implemented
             // new LlmAnthropic(),
-            // new LlmGemini(),
         ];
     }
 
