@@ -137,6 +137,14 @@ resource "aws_apigatewayv2_route" "get_stocks_search" {
   target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
 }
 
+// Catch-all route for frontend static files and client-side routing
+// This must be added after all specific API routes to ensure they take precedence
+resource "aws_apigatewayv2_route" "catch_all" {
+  api_id    = aws_apigatewayv2_api.api_gateway.id
+  route_key = "$default"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
+
 // deploys API
 resource "aws_apigatewayv2_stage" "api_stage" {
   api_id      = aws_apigatewayv2_api.api_gateway.id

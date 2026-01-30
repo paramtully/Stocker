@@ -48,6 +48,15 @@ archive.pipe(output);
 console.log('Adding dist/ folder...');
 archive.directory(join(distDir, '.'), 'dist', false);
 
+// Add public folder (frontend build)
+const publicDir = join(rootDir, 'src', 'infra', 'frontend', 'public');
+if (existsSync(publicDir)) {
+    console.log('Adding public/ folder (frontend build)...');
+    archive.directory(publicDir, 'public', false);
+} else {
+    console.warn('Warning: public/ directory does not exist. Frontend may not be built.');
+}
+
 // In a monorepo with workspaces, dependencies are hoisted to root node_modules
 const rootNodeModules = join(rootDir, '..', '..', 'node_modules');
 const localNodeModules = join(rootDir, 'node_modules');
