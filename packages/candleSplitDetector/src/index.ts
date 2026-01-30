@@ -1,23 +1,37 @@
 import { CandleYfinance } from "@stocker/infra/external/candle";
 import { BucketS3 } from "@stocker/infra/external/bucket";
-import { CandleDrizzleRepository } from "@stocker/repositories/drizzle/stock";
-import StocksRepository from "@stocker/repositories/interfaces/stock/stocks.repository";
-import { StocksDrizzleRepository } from "@stocker/repositories/drizzle/stock";
-import { Candle } from "@stocker/domain/stock/candle";
 
 interface SplitRecord {
     date: string;
     ratio: number;
     detectedAt: string;
-    appliedToDb: boolean;
+}
+
+interface CurrentListings {
+    lastUpdated: string;
+    currentTickers: string[];
+    stockMetadata: Array<{
+        ticker: string;
+        companyName: string;
+        marketCap: string;
+        industry: string;
+        exchange: string;
+    }>;
 }
 
 async function getExistingSplits(ticker: string): Promise<SplitRecord[]> {
     const bucketService = new BucketS3();
-    const key = `splits/${ticker}-splits.json`;
+    // Check both processed and pending locations
+    const processedKey = `splits/processed/${ticker}-splits.json`;
+    const pendingKey = `splits/pending/${ticker}-splits.json`;
 
     try {
-        const data = await bucketService.getObject(key);
+        // Try processed first (final state)
+        let data = await bucketService.getObject(processedKey);
+        if (!data) {
+            // Try pending (might be in process)
+            data = await bucketService.getObject(pendingKey);
+        }
         if (!data) return [];
         return JSON.parse(data) as SplitRecord[];
     } catch {
@@ -25,47 +39,32 @@ async function getExistingSplits(ticker: string): Promise<SplitRecord[]> {
     }
 }
 
-async function saveSplits(ticker: string, splits: SplitRecord[]): Promise<void> {
-    const bucketService = new BucketS3();
-    const key = `splits/${ticker}-splits.json`;
-    await bucketService.putObject(key, JSON.stringify(splits, null, 2), "application/json");
-}
-
-function applySplitAdjustment(candles: Candle[], splitDate: Date, splitRatio: number): Candle[] {
-    return candles.map(candle => {
-        // Only adjust candles before the split date
-        if (candle.date < splitDate) {
-            return {
-                ...candle,
-                open: candle.open / splitRatio,
-                high: candle.high / splitRatio,
-                low: candle.low / splitRatio,
-                close: candle.close / splitRatio,
-                volume: candle.volume * splitRatio, // Volume increases
-            };
-        }
-        return candle;
-    });
-}
-
 /**
- * Lambda handler for detecting and applying stock splits
- * Triggered by EventBridge (daily after S3-to-RDS sync)
+ * Lambda handler for fetching stock splits from external API
+ * Triggered by EventBridge (daily schedule)
  * 
- * Fetches recent splits, compares with S3 records, and updates RDS for new splits
+ * Fetches recent splits from Yahoo Finance API, compares with existing splits in S3,
+ * and writes new splits to S3 at splits/pending/{ticker}-splits.json for processing
  */
 export async function handler(): Promise<void> {
-    console.log("Starting stock split detection...");
+    console.log("Starting stock split detection (fetch phase)...");
 
     try {
         const candleService = new CandleYfinance();
-        const candleRepository = new CandleDrizzleRepository();
-        const stockRepository: StocksRepository = new StocksDrizzleRepository();
+        const bucketService = new BucketS3();
 
-        // Get all tickers
-        const stocks = await stockRepository.getStocks();
-        const tickers = stocks.map(stock => stock.ticker);
+        // Get tickers from S3 (from current listings)
+        const listingsKey = "listings/current-listings.json";
+        console.log(`Reading tickers from S3: ${listingsKey}`);
+        const listingsData = await bucketService.getObject(listingsKey);
 
+        if (!listingsData) {
+            console.error("No listings data found in S3. Cannot proceed.");
+            return;
+        }
+
+        const listings: CurrentListings = JSON.parse(listingsData);
+        const tickers = listings.currentTickers;
         console.log(`Checking splits for ${tickers.length} tickers`);
 
         // Check last 30 days for splits
@@ -75,7 +74,7 @@ export async function handler(): Promise<void> {
         const startDateStr = startDate.toISOString().split("T")[0];
         const endDateStr = endDate.toISOString().split("T")[0];
 
-        let totalSplitsApplied = 0;
+        let totalNewSplits = 0;
 
         for (const ticker of tickers) {
             try {
@@ -102,54 +101,32 @@ export async function handler(): Promise<void> {
 
                 console.log(`Found ${newSplits.length} new split(s) for ${ticker}`);
 
-                // For each new split, update database
-                for (const newSplit of newSplits) {
-                    console.log(`  Processing split on ${newSplit.date.toISOString().split("T")[0]} with ratio ${newSplit.ratio}`);
+                // Convert to SplitRecord format and write to pending location
+                const splitRecords: SplitRecord[] = newSplits.map(split => ({
+                    date: split.date.toISOString().split("T")[0],
+                    ratio: split.ratio,
+                    detectedAt: new Date().toISOString(),
+                }));
 
-                    // Read all candles for this ticker from RDS
-                    const allCandles = await candleRepository.getCandlesByTickers([ticker]);
-                    const tickerCandles = allCandles[ticker] || [];
+                // Write to pending location (will trigger apply Lambda)
+                const pendingKey = `splits/pending/${ticker}-splits.json`;
+                console.log(`Writing new splits to S3: ${pendingKey}`);
+                await bucketService.putObject(
+                    pendingKey,
+                    JSON.stringify(splitRecords, null, 2),
+                    "application/json"
+                );
 
-                    if (tickerCandles.length === 0) {
-                        console.log(`    No candles found in RDS for ${ticker}, skipping`);
-                        continue;
-                    }
-
-                    // Apply split adjustment to candles before split date
-                    const adjustedCandles = applySplitAdjustment(
-                        tickerCandles,
-                        newSplit.date,
-                        newSplit.ratio
-                    );
-
-                    // Update RDS with adjusted candles
-                    // insertCandles uses onConflictDoUpdate, so it will update existing records
-                    await candleRepository.insertCandles(adjustedCandles);
-
-                    console.log(`    ✓ Updated ${adjustedCandles.length} candles in RDS`);
-
-                    // Save split record to S3
-                    const splitRecord: SplitRecord = {
-                        date: newSplit.date.toISOString().split("T")[0],
-                        ratio: newSplit.ratio,
-                        detectedAt: new Date().toISOString(),
-                        appliedToDb: true
-                    };
-
-                    existingSplits.push(splitRecord);
-                    await saveSplits(ticker, existingSplits);
-
-                    totalSplitsApplied++;
-                }
+                totalNewSplits += newSplits.length;
             } catch (error) {
                 console.error(`Error processing splits for ${ticker}:`, error);
                 // Continue with next ticker
             }
         }
 
-        console.log(`✅ Split detection complete. Applied ${totalSplitsApplied} new split(s)`);
+        console.log(`✅ Split detection (fetch) complete. Found ${totalNewSplits} new split(s) to process`);
     } catch (error) {
-        console.error("❌ Error in split detection:", error);
+        console.error("❌ Error in split detection (fetch):", error);
         throw error;
     }
 }

@@ -42,13 +42,16 @@ resource "aws_security_group" "database_security_group" {
     description = "Security group for RDS database"
     vpc_id = var.vpc_id
 
-    // Allow inbound from Lambda security group on PostgreSQL port
-    ingress {
-        from_port       = 5432
-        to_port         = 5432
-        protocol        = "tcp"
-        security_groups = [var.lambda_security_group_id]
-        description     = "Allow PostgreSQL access from Lambda"
+    // Allow inbound from Lambda security groups on PostgreSQL port
+    dynamic "ingress" {
+        for_each = var.lambda_security_group_ids
+        content {
+            from_port       = 5432
+            to_port         = 5432
+            protocol        = "tcp"
+            security_groups = [ingress.value]
+            description     = "Allow PostgreSQL access from Lambda"
+        }
     }
 
     // No outbound needed for RDS

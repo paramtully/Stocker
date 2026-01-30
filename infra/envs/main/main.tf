@@ -44,7 +44,10 @@ module "database" {
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnet_ids
 
-  lambda_security_group_id = module.api.lambda_security_group_id // Need to add this output to API module
+  lambda_security_group_ids = [
+    module.api.lambda_security_group_id,
+    module.candle_split_detector_apply.lambda_security_group_id
+  ]
 
   // Database credentials
   master_password = var.master_password
@@ -123,6 +126,40 @@ module "candle_new_listing_ingestion" {
 
 module "candle_new_listing_s3_to_rds" {
   source = "../../modules/candleNewListingS3ToRds"
+
+  name_prefix = local.name_prefix
+  tags        = local.required_tags
+
+  // VPC configuration - using PRIVATE subnets
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnet_ids
+
+  // Database configuration
+  database_url = module.database.database_url
+
+  // S3 configuration
+  s3_bucket_name = module.s3.bucket_name
+  s3_bucket_id   = module.s3.bucket_id
+
+  // Region
+  aws_region = var.region
+}
+
+module "candle_split_detector_fetch" {
+  source = "../../modules/candleSplitDetectorFetch"
+
+  name_prefix = local.name_prefix
+  tags        = local.required_tags
+
+  // S3 configuration
+  s3_bucket_name = module.s3.bucket_name
+
+  // Region
+  aws_region = var.region
+}
+
+module "candle_split_detector_apply" {
+  source = "../../modules/candleSplitDetectorApply"
 
   name_prefix = local.name_prefix
   tags        = local.required_tags

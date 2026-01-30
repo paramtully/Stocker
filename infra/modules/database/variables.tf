@@ -48,7 +48,8 @@ variable "instance_class" {
   default     = "db.t3.micro"  // Start small, can scale up
 }
 
-variable "lambda_security_group_id" {
-  type        = string
-  description = "Security group ID of Lambda function (for RDS ingress rule)"
+variable "lambda_security_group_ids" {
+  type        = list(string)
+  description = "List of security group IDs of Lambda functions (for RDS ingress rules)"
+  default     = []
 }
