@@ -13,8 +13,8 @@ resource "aws_db_instance" "database" {
   storage_type          = "gp3"
   storage_encrypted     = true
 
-  db_subnet_group_name   = aws_db_subnet_group.database.name
-  vpc_security_group_ids = [aws_security_group.rds.id]
+  db_subnet_group_name   = aws_db_subnet_group.database_subnet_group.name
+  vpc_security_group_ids = [aws_security_group.database_security_group.id]
 
   backup_retention_period = 7
   backup_window          = "03:00-04:00"

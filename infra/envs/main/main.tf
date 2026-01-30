@@ -46,7 +46,11 @@ module "database" {
 
   lambda_security_group_ids = [
     module.api.lambda_security_group_id,
-    module.candle_split_detector_apply.lambda_security_group_id
+    module.candle_split_detector_apply.lambda_security_group_id,
+    module.candle_s3_to_rds.lambda_security_group_id,
+    module.news_s3_to_rds.lambda_security_group_id,
+    module.guest_user_cleanup.lambda_security_group_id,
+    module.candle_new_listing_detector.lambda_security_group_id
   ]
 
   // Database credentials
@@ -174,6 +178,129 @@ module "candle_split_detector_apply" {
   // S3 configuration
   s3_bucket_name = module.s3.bucket_name
   s3_bucket_id   = module.s3.bucket_id
+
+  // Region
+  aws_region = var.region
+}
+
+module "candle_ingestion" {
+  source = "../../modules/candleIngestion"
+
+  name_prefix = local.name_prefix
+  tags        = local.required_tags
+
+  // S3 configuration
+  s3_bucket_name = module.s3.bucket_name
+
+  // Region
+  aws_region = var.region
+}
+
+module "news_ingestion" {
+  source = "../../modules/newsIngestion"
+
+  name_prefix = local.name_prefix
+  tags        = local.required_tags
+
+  // S3 configuration
+  s3_bucket_name = module.s3.bucket_name
+
+  // Region
+  aws_region = var.region
+}
+
+module "candle_s3_to_rds" {
+  source = "../../modules/candleS3ToRds"
+
+  name_prefix = local.name_prefix
+  tags        = local.required_tags
+
+  // VPC configuration - using PRIVATE subnets
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnet_ids
+
+  // Database configuration
+  database_url = module.database.database_url
+
+  // S3 configuration
+  s3_bucket_name = module.s3.bucket_name
+  s3_bucket_id   = module.s3.bucket_id
+
+  // Region
+  aws_region = var.region
+}
+
+module "news_s3_to_rds" {
+  source = "../../modules/newsS3ToRds"
+
+  name_prefix = local.name_prefix
+  tags        = local.required_tags
+
+  // VPC configuration - using PRIVATE subnets
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnet_ids
+
+  // Database configuration
+  database_url = module.database.database_url
+
+  // S3 configuration
+  s3_bucket_name = module.s3.bucket_name
+  s3_bucket_id   = module.s3.bucket_id
+
+  // Region
+  aws_region = var.region
+}
+
+module "news_summarization" {
+  source = "../../modules/newsSummarization"
+
+  name_prefix = local.name_prefix
+  tags        = local.required_tags
+
+  // S3 configuration
+  s3_bucket_name = module.s3.bucket_name
+  s3_bucket_id   = module.s3.bucket_id
+
+  // Region
+  aws_region = var.region
+}
+
+module "guest_user_cleanup" {
+  source = "../../modules/guestUserCleanup"
+
+  name_prefix = local.name_prefix
+  tags        = local.required_tags
+
+  // VPC configuration - using PRIVATE subnets
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnet_ids
+
+  // Database configuration
+  database_url = module.database.database_url
+
+  // Cognito configuration
+  cognito_user_pool_id  = module.cognito.user_pool_id
+  cognito_user_pool_arn = module.cognito.user_pool_arn
+
+  // Region
+  aws_region = var.region
+}
+
+module "candle_new_listing_detector" {
+  source = "../../modules/candleNewListingDetector"
+
+  name_prefix = local.name_prefix
+  tags        = local.required_tags
+
+  // VPC configuration - using PRIVATE subnets
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnet_ids
+
+  // Database configuration
+  database_url = module.database.database_url
+
+  // S3 configuration
+  s3_bucket_name = module.s3.bucket_name
 
   // Region
   aws_region = var.region
