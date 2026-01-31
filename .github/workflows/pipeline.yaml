@@ -42,3 +42,73 @@ jobs:
       - name: Terraform Apply
         working-directory: ./infra/envs/main
         run: terraform apply -auto-approve
+      
+      - name: Get ECR Repository URLs and ECS Service Names
+        id: terraform-outputs
+        working-directory: ./infra/envs/main
+        run: |
+          CANDLE_ECR=$(terraform output -raw candle_load_ecr_repository_url 2>/dev/null || echo "")
+          NEWS_ECR=$(terraform output -raw news_load_ecr_repository_url 2>/dev/null || echo "")
+          CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null || echo "")
+          CANDLE_SERVICE=$(terraform output -raw candle_load_service_name 2>/dev/null || echo "")
+          NEWS_SERVICE=$(terraform output -raw news_load_service_name 2>/dev/null || echo "")
+          echo "candle_ecr=$CANDLE_ECR" >> $GITHUB_OUTPUT
+          echo "news_ecr=$NEWS_ECR" >> $GITHUB_OUTPUT
+          echo "cluster_name=$CLUSTER_NAME" >> $GITHUB_OUTPUT
+          echo "candle_service=$CANDLE_SERVICE" >> $GITHUB_OUTPUT
+          echo "news_service=$NEWS_SERVICE" >> $GITHUB_OUTPUT
+      
+      - name: Login to Amazon ECR
+        id: login-ecr
+        if: steps.terraform-outputs.outputs.candle_ecr != '' || steps.terraform-outputs.outputs.news_ecr != ''
+        uses: aws-actions/amazon-ecr-login@v2
+      
+      - name: Set up Docker Buildx
+        if: steps.terraform-outputs.outputs.candle_ecr != '' || steps.terraform-outputs.outputs.news_ecr != ''
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build and Push Candle Historical Load Image
+        if: steps.terraform-outputs.outputs.candle_ecr != ''
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./packages/candleHistoricalLoad/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.terraform-outputs.outputs.candle_ecr }}:latest
+            ${{ steps.terraform-outputs.outputs.candle_ecr }}:${{ github.sha }}
+          cache-from: type=registry,ref=${{ steps.terraform-outputs.outputs.candle_ecr }}:buildcache
+          cache-to: type=registry,ref=${{ steps.terraform-outputs.outputs.candle_ecr }}:buildcache,mode=max
+          platforms: linux/amd64
+      
+      - name: Build and Push News Historical Load Image
+        if: steps.terraform-outputs.outputs.news_ecr != ''
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./packages/newsHistoricalLoad/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.terraform-outputs.outputs.news_ecr }}:latest
+            ${{ steps.terraform-outputs.outputs.news_ecr }}:${{ github.sha }}
+          cache-from: type=registry,ref=${{ steps.terraform-outputs.outputs.news_ecr }}:buildcache
+          cache-to: type=registry,ref=${{ steps.terraform-outputs.outputs.news_ecr }}:buildcache,mode=max
+          platforms: linux/amd64
+      
+      - name: Force ECS Service Update - Candle Load
+        if: steps.terraform-outputs.outputs.candle_service != '' && steps.terraform-outputs.outputs.cluster_name != ''
+        run: |
+          aws ecs update-service \
+            --cluster ${{ steps.terraform-outputs.outputs.cluster_name }} \
+            --service ${{ steps.terraform-outputs.outputs.candle_service }} \
+            --force-new-deployment \
+            --region ${{ secrets.AWS_REGION }} || echo "Failed to update candle service"
+      
+      - name: Force ECS Service Update - News Load
+        if: steps.terraform-outputs.outputs.news_service != '' && steps.terraform-outputs.outputs.cluster_name != ''
+        run: |
+          aws ecs update-service \
+            --cluster ${{ steps.terraform-outputs.outputs.cluster_name }} \
+            --service ${{ steps.terraform-outputs.outputs.news_service }} \
+            --force-new-deployment \
+            --region ${{ secrets.AWS_REGION }} || echo "Failed to update news service"

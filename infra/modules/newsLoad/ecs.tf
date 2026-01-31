@@ -12,7 +12,7 @@ resource "aws_ecs_task_definition" "news_load_task" {
   container_definitions = jsonencode([
     {
       name  = "news-load"
-      image = var.ecr_repository_url != "" ? "${var.ecr_repository_url}:latest" : "stocker/news-historical-load:latest"
+      image = "${aws_ecr_repository.news_load_repo.repository_url}:latest"
 
       essential = true
 

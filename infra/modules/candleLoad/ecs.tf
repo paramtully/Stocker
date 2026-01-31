@@ -12,7 +12,7 @@ resource "aws_ecs_task_definition" "candle_load_task" {
   container_definitions = jsonencode([
     {
       name  = "candle-load"
-      image = var.ecr_repository_url != "" ? "${var.ecr_repository_url}:latest" : "stocker/candle-historical-load:latest"
+      image = "${aws_ecr_repository.candle_load_repo.repository_url}:latest"
 
       essential = true
 
