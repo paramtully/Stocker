@@ -4,7 +4,6 @@ import StockYfinance from "@stocker/infra/external/stock/stock.yfinance";
 import { BucketS3 } from "@stocker/infra/external/bucket";
 import StocksRepository from "@stocker/repositories/interfaces/stock/stocks.repository";
 import { StocksDrizzleRepository } from "@stocker/repositories/drizzle/stock";
-import { Stock } from "@stocker/domain/stock/stock";
 
 interface NewListingLog {
     date: string;
