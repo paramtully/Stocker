@@ -22,3 +22,8 @@ output "news_load_service_name" {
   description = "ECS service name for news load"
   value       = module.news_load.service_name
 }
+
+output "api_gateway_endpoint" {
+  description = "API Gateway endpoint URL"
+  value       = module.api.api_gateway_endpoint
+}

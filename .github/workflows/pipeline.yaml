@@ -24,6 +24,20 @@ jobs:
       - name: Build frontend and server
         run: npm run build:server
       
+      - name: Verify build artifacts
+        run: |
+          set -e
+          if [ ! -f "packages/server/dist/api_lambda.zip" ]; then
+            echo "Error: Required Lambda zip file not found: packages/server/dist/api_lambda.zip"
+            exit 1
+          fi
+          echo "✓ Build artifacts verified"
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.11.0"
+      
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -33,15 +47,40 @@ jobs:
       
       - name: Terraform Init
         working-directory: ./infra/envs/main
-        run: terraform init
+        run: |
+          set -e
+          terraform init
       
       - name: Terraform Plan
         working-directory: ./infra/envs/main
-        run: terraform plan
+        env:
+          TF_VAR_master_password: ${{ secrets.TF_VAR_MASTER_PASSWORD }}
+          TF_VAR_region: ${{ secrets.AWS_REGION }}
+        run: |
+          set +e
+          terraform plan -detailed-exitcode
+          PLAN_EXIT_CODE=$?
+          set -e
+          if [ $PLAN_EXIT_CODE -eq 1 ]; then
+            echo "Error: Terraform plan failed"
+            exit 1
+          elif [ $PLAN_EXIT_CODE -eq 2 ]; then
+            echo "Terraform plan shows changes will be applied"
+          elif [ $PLAN_EXIT_CODE -eq 0 ]; then
+            echo "Terraform plan shows no changes"
+          else
+            echo "Unexpected exit code: $PLAN_EXIT_CODE"
+            exit 1
+          fi
       
       - name: Terraform Apply
         working-directory: ./infra/envs/main
-        run: terraform apply -auto-approve
+        env:
+          TF_VAR_master_password: ${{ secrets.TF_VAR_MASTER_PASSWORD }}
+          TF_VAR_region: ${{ secrets.AWS_REGION }}
+        run: |
+          set -e
+          terraform apply -auto-approve
       
       - name: Get ECR Repository URLs and ECS Service Names
         id: terraform-outputs
@@ -98,17 +137,19 @@ jobs:
       - name: Force ECS Service Update - Candle Load
         if: steps.terraform-outputs.outputs.candle_service != '' && steps.terraform-outputs.outputs.cluster_name != ''
         run: |
+          set -e
           aws ecs update-service \
             --cluster ${{ steps.terraform-outputs.outputs.cluster_name }} \
             --service ${{ steps.terraform-outputs.outputs.candle_service }} \
             --force-new-deployment \
-            --region ${{ secrets.AWS_REGION }} || echo "Failed to update candle service"
+            --region ${{ secrets.AWS_REGION }}
       
       - name: Force ECS Service Update - News Load
         if: steps.terraform-outputs.outputs.news_service != '' && steps.terraform-outputs.outputs.cluster_name != ''
         run: |
+          set -e
           aws ecs update-service \
             --cluster ${{ steps.terraform-outputs.outputs.cluster_name }} \
             --service ${{ steps.terraform-outputs.outputs.news_service }} \
             --force-new-deployment \
-            --region ${{ secrets.AWS_REGION }} || echo "Failed to update news service"
+            --region ${{ secrets.AWS_REGION }}
