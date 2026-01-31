@@ -251,6 +251,46 @@ module "news_s3_to_rds" {
   aws_region = var.region
 }
 
+module "candle_historical_bulk_load" {
+  source = "../../modules/candleHistoricalBulkLoad"
+
+  name_prefix = local.name_prefix
+  tags        = local.required_tags
+
+  // VPC configuration - using PRIVATE subnets for RDS access
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnet_ids
+
+  // Database configuration
+  database_url = module.database.database_url
+
+  // S3 configuration
+  s3_bucket_name = module.s3.bucket_name
+
+  // Region
+  aws_region = var.region
+}
+
+module "news_historical_bulk_load" {
+  source = "../../modules/newsHistoricalBulkLoad"
+
+  name_prefix = local.name_prefix
+  tags        = local.required_tags
+
+  // VPC configuration - using PRIVATE subnets for RDS access
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnet_ids
+
+  // Database configuration
+  database_url = module.database.database_url
+
+  // S3 configuration
+  s3_bucket_name = module.s3.bucket_name
+
+  // Region
+  aws_region = var.region
+}
+
 module "news_summarization" {
   source = "../../modules/newsSummarization"
 
