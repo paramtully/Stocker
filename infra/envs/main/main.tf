@@ -114,8 +114,8 @@ module "news_historical" {
   cluster_arn  = module.ecs_cluster.cluster_arn
 }
 
-module "candle_new_listing_ingestion" {
-  source = "../../modules/candleNewListingIngestion"
+module "candle_new_listings" {
+  source = "../../modules/candleNewListings"
 
   name_prefix = local.name_prefix
   tags        = local.required_tags
@@ -127,8 +127,8 @@ module "candle_new_listing_ingestion" {
   aws_region = var.region
 }
 
-module "candle_new_listing_s3_to_rds" {
-  source = "../../modules/candleNewListingS3ToRds"
+module "candle_new_listings_ingest" {
+  source = "../../modules/candleNewListingsIngest"
 
   name_prefix = local.name_prefix
   tags        = local.required_tags
@@ -271,8 +271,8 @@ module "news_daily" {
   aws_region = var.region
 }
 
-module "news_historical_bulk_load" {
-  source = "../../modules/newsHistoricalBulkLoad"
+module "news_historical_ingest" {
+  source = "../../modules/newsHistoricalIngest"
 
   name_prefix = local.name_prefix
   tags        = local.required_tags

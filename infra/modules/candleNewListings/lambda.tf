@@ -62,8 +62,8 @@ resource "aws_lambda_function" "ingestion_lambda" {
   role             = aws_iam_role.lambda_role.arn
   handler          = "dist/index.handler"
   runtime          = "nodejs20.x"
-  filename         = "../../packages/candleNewListingIngestion/dist/lambda.zip"
-  source_code_hash = filebase64sha256("../../packages/candleNewListingIngestion/dist/lambda.zip")
+  filename         = "../../packages/candleNewListings/dist/lambda.zip"
+  source_code_hash = filebase64sha256("../../packages/candleNewListings/dist/lambda.zip")
   timeout          = 300 // 5 minutes
 
   // No VPC configuration - runs in default VPC or no VPC for internet access

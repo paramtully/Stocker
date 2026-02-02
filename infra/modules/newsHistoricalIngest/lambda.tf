@@ -1,6 +1,6 @@
 // IAM role for Lambda
 resource "aws_iam_role" "lambda_role" {
-  name = "${var.name_prefix}-new-listing-s3-to-rds-role"
+  name = "${var.name_prefix}-news-historical-ingest-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -14,7 +14,7 @@ resource "aws_iam_role" "lambda_role" {
   })
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-new-listing-s3-to-rds-role"
+    Name = "${var.name_prefix}-news-historical-ingest-role"
   })
 }
 
@@ -32,8 +32,8 @@ resource "aws_iam_role_policy_attachment" "lambda_vpc_execution" {
 
 // Security group for Lambda
 resource "aws_security_group" "lambda_sg" {
-  name        = "${var.name_prefix}-new-listing-s3-to-rds-sg"
-  description = "Security group for new listing S3-to-RDS Lambda function in VPC"
+  name        = "${var.name_prefix}-news-historical-ingest-sg"
+  description = "Security group for news historical ingest Lambda function in VPC"
   vpc_id      = var.vpc_id
 
   // Allow outbound traffic (for RDS, S3, etc.)
@@ -46,13 +46,13 @@ resource "aws_security_group" "lambda_sg" {
   }
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-new-listing-s3-to-rds-sg"
+    Name = "${var.name_prefix}-news-historical-ingest-sg"
   })
 }
 
-// IAM Policy for S3 read access
+// IAM Policy for S3 read access and checkpoint management
 resource "aws_iam_role_policy" "lambda_s3_policy" {
-  name = "${var.name_prefix}-new-listing-s3-to-rds-s3-policy"
+  name = "${var.name_prefix}-news-historical-ingest-s3-policy"
   role = aws_iam_role.lambda_role.id
 
   policy = jsonencode({
@@ -66,18 +66,39 @@ resource "aws_iam_role_policy" "lambda_s3_policy" {
         ]
         Resource = [
           "arn:aws:s3:::${var.s3_bucket_name}",
-          "arn:aws:s3:::${var.s3_bucket_name}/*"
+          "arn:aws:s3:::${var.s3_bucket_name}/news/*",
+          "arn:aws:s3:::${var.s3_bucket_name}/news/processed/*",
+          "arn:aws:s3:::${var.s3_bucket_name}/news/processed/year/*"
         ]
       },
       {
         Effect = "Allow"
         Action = [
           "s3:PutObject",
-          "s3:PutObjectAcl"
+          "s3:DeleteObject"
         ]
         Resource = [
-          "arn:aws:s3:::${var.s3_bucket_name}/listings/processed/*"
+          "arn:aws:s3:::${var.s3_bucket_name}/checkpoints/*"
         ]
+      }
+    ]
+  })
+}
+
+// IAM Policy for Lambda invoke (recursive invocation)
+resource "aws_iam_role_policy" "lambda_invoke_policy" {
+  name = "${var.name_prefix}-news-historical-ingest-invoke-policy"
+  role = aws_iam_role.lambda_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "lambda:InvokeFunction"
+        ]
+        Resource = aws_lambda_function.bulk_load_lambda.arn
       }
     ]
   })
@@ -85,23 +106,24 @@ resource "aws_iam_role_policy" "lambda_s3_policy" {
 
 // CloudWatch Log Group
 resource "aws_cloudwatch_log_group" "lambda_logs" {
-  name              = "/aws/lambda/${var.name_prefix}-new-listing-s3-to-rds"
+  name              = "/aws/lambda/${var.name_prefix}-news-historical-ingest"
   retention_in_days = 7
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-new-listing-s3-to-rds-logs"
+    Name = "${var.name_prefix}-news-historical-ingest-logs"
   })
 }
 
 // Lambda function
-resource "aws_lambda_function" "s3_to_rds_lambda" {
-  function_name    = "${var.name_prefix}-new-listing-s3-to-rds"
+resource "aws_lambda_function" "bulk_load_lambda" {
+  function_name    = "${var.name_prefix}-news-historical-ingest"
   role             = aws_iam_role.lambda_role.arn
   handler          = "dist/index.handler"
   runtime          = "nodejs20.x"
-  filename         = "../../packages/candleNewListingS3ToRds/dist/lambda.zip"
-  source_code_hash = filebase64sha256("../../packages/candleNewListingS3ToRds/dist/lambda.zip")
-  timeout          = 300 // 5 minutes
+  filename         = "../../packages/newsHistoricalIngest/dist/lambda.zip"
+  source_code_hash = filebase64sha256("../../packages/newsHistoricalIngest/dist/lambda.zip")
+  timeout          = 900 // 15 minutes - maximum
+  memory_size      = 3008 // Maximum memory for better performance with large parquet files
 
   // VPC configuration for database access
   vpc_config {
@@ -111,14 +133,15 @@ resource "aws_lambda_function" "s3_to_rds_lambda" {
 
   environment {
     variables = {
-      DATABASE_URL = var.database_url
-      AWS_REGION   = data.aws_region.current.name
-      S3_BUCKET    = var.s3_bucket_name
+      DATABASE_URL        = var.database_url
+      AWS_REGION          = data.aws_region.current.name
+      S3_BUCKET           = var.s3_bucket_name
+      LAMBDA_FUNCTION_NAME = aws_lambda_function.bulk_load_lambda.function_name
     }
   }
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-new-listing-s3-to-rds"
+    Name = "${var.name_prefix}-news-historical-ingest"
   })
 
   depends_on = [
@@ -129,4 +152,3 @@ resource "aws_lambda_function" "s3_to_rds_lambda" {
 
 // Add data source for current region
 data "aws_region" "current" {}
-

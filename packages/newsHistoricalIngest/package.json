@@ -1,5 +1,5 @@
 {
-  "name": "@stocker/news-historical-bulk-load",
+  "name": "@stocker/news-historical-ingest",
   "version": "1.0.0",
   "type": "module",
   "main": "./dist/index.js",

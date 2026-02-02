@@ -1,5 +1,5 @@
 {
-  "name": "@stocker/candle-new-listing-s3-to-rds",
+  "name": "@stocker/candle-new-listings-ingest",
   "version": "1.0.0",
   "type": "module",
   "main": "./dist/index.js",
