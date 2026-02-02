@@ -1,6 +1,6 @@
 // IAM role for Lambda
 resource "aws_iam_role" "lambda_role" {
-  name = "${var.name_prefix}-candle-s3-to-rds-role"
+  name = "${var.name_prefix}-news-daily-ingest-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -14,7 +14,7 @@ resource "aws_iam_role" "lambda_role" {
   })
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-candle-s3-to-rds-role"
+    Name = "${var.name_prefix}-news-daily-ingest-role"
   })
 }
 
@@ -32,8 +32,8 @@ resource "aws_iam_role_policy_attachment" "lambda_vpc_execution" {
 
 // Security group for Lambda
 resource "aws_security_group" "lambda_sg" {
-  name        = "${var.name_prefix}-candle-s3-to-rds-sg"
-  description = "Security group for candle S3-to-RDS Lambda function in VPC"
+  name        = "${var.name_prefix}-news-daily-ingest-sg"
+  description = "Security group for news daily ingest Lambda function in VPC"
   vpc_id      = var.vpc_id
 
   // Allow outbound traffic (for RDS, S3, etc.)
@@ -46,13 +46,13 @@ resource "aws_security_group" "lambda_sg" {
   }
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-candle-s3-to-rds-sg"
+    Name = "${var.name_prefix}-news-daily-ingest-sg"
   })
 }
 
 // IAM Policy for S3 read access
 resource "aws_iam_role_policy" "lambda_s3_policy" {
-  name = "${var.name_prefix}-candle-s3-to-rds-s3-policy"
+  name = "${var.name_prefix}-news-daily-ingest-s3-policy"
   role = aws_iam_role.lambda_role.id
 
   policy = jsonencode({
@@ -66,8 +66,9 @@ resource "aws_iam_role_policy" "lambda_s3_policy" {
         ]
         Resource = [
           "arn:aws:s3:::${var.s3_bucket_name}",
-          "arn:aws:s3:::${var.s3_bucket_name}/candles/*",
-          "arn:aws:s3:::${var.s3_bucket_name}/candles/year/*"
+          "arn:aws:s3:::${var.s3_bucket_name}/news/*",
+          "arn:aws:s3:::${var.s3_bucket_name}/news/processed/*",
+          "arn:aws:s3:::${var.s3_bucket_name}/news/processed/year/*"
         ]
       }
     ]
@@ -76,22 +77,22 @@ resource "aws_iam_role_policy" "lambda_s3_policy" {
 
 // CloudWatch Log Group
 resource "aws_cloudwatch_log_group" "lambda_logs" {
-  name              = "/aws/lambda/${var.name_prefix}-candle-s3-to-rds"
+  name              = "/aws/lambda/${var.name_prefix}-news-daily-ingest"
   retention_in_days = 7
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-candle-s3-to-rds-logs"
+    Name = "${var.name_prefix}-news-daily-ingest-logs"
   })
 }
 
 // Lambda function
 resource "aws_lambda_function" "s3_to_rds_lambda" {
-  function_name    = "${var.name_prefix}-candle-s3-to-rds"
+  function_name    = "${var.name_prefix}-news-daily-ingest"
   role             = aws_iam_role.lambda_role.arn
   handler          = "dist/index.handler"
   runtime          = "nodejs20.x"
-  filename         = "../../packages/candleS3ToRds/dist/lambda.zip"
-  source_code_hash = filebase64sha256("../../packages/candleS3ToRds/dist/lambda.zip")
+  filename         = "../../packages/newsDailyIngest/dist/lambda.zip"
+  source_code_hash = filebase64sha256("../../packages/newsDailyIngest/dist/lambda.zip")
   timeout          = 300 // 5 minutes
 
   // VPC configuration for database access
@@ -109,7 +110,7 @@ resource "aws_lambda_function" "s3_to_rds_lambda" {
   }
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-candle-s3-to-rds"
+    Name = "${var.name_prefix}-news-daily-ingest"
   })
 
   depends_on = [

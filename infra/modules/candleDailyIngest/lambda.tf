@@ -1,6 +1,6 @@
 // IAM role for Lambda
 resource "aws_iam_role" "lambda_role" {
-  name = "${var.name_prefix}-candle-historical-bulk-load-role"
+  name = "${var.name_prefix}-candle-daily-ingest-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -14,7 +14,7 @@ resource "aws_iam_role" "lambda_role" {
   })
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-candle-historical-bulk-load-role"
+    Name = "${var.name_prefix}-candle-daily-ingest-role"
   })
 }
 
@@ -32,8 +32,8 @@ resource "aws_iam_role_policy_attachment" "lambda_vpc_execution" {
 
 // Security group for Lambda
 resource "aws_security_group" "lambda_sg" {
-  name        = "${var.name_prefix}-candle-historical-bulk-load-sg"
-  description = "Security group for candle historical bulk load Lambda function in VPC"
+  name        = "${var.name_prefix}-candle-daily-ingest-sg"
+  description = "Security group for candle daily ingest Lambda function in VPC"
   vpc_id      = var.vpc_id
 
   // Allow outbound traffic (for RDS, S3, etc.)
@@ -46,13 +46,13 @@ resource "aws_security_group" "lambda_sg" {
   }
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-candle-historical-bulk-load-sg"
+    Name = "${var.name_prefix}-candle-daily-ingest-sg"
   })
 }
 
-// IAM Policy for S3 read access and checkpoint management
+// IAM Policy for S3 read access
 resource "aws_iam_role_policy" "lambda_s3_policy" {
-  name = "${var.name_prefix}-candle-historical-bulk-load-s3-policy"
+  name = "${var.name_prefix}-candle-daily-ingest-s3-policy"
   role = aws_iam_role.lambda_role.id
 
   policy = jsonencode({
@@ -69,35 +69,6 @@ resource "aws_iam_role_policy" "lambda_s3_policy" {
           "arn:aws:s3:::${var.s3_bucket_name}/candles/*",
           "arn:aws:s3:::${var.s3_bucket_name}/candles/year/*"
         ]
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "s3:PutObject",
-          "s3:DeleteObject"
-        ]
-        Resource = [
-          "arn:aws:s3:::${var.s3_bucket_name}/checkpoints/*"
-        ]
-      }
-    ]
-  })
-}
-
-// IAM Policy for Lambda invoke (recursive invocation)
-resource "aws_iam_role_policy" "lambda_invoke_policy" {
-  name = "${var.name_prefix}-candle-historical-bulk-load-invoke-policy"
-  role = aws_iam_role.lambda_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "lambda:InvokeFunction"
-        ]
-        Resource = aws_lambda_function.bulk_load_lambda.arn
       }
     ]
   })
@@ -105,24 +76,23 @@ resource "aws_iam_role_policy" "lambda_invoke_policy" {
 
 // CloudWatch Log Group
 resource "aws_cloudwatch_log_group" "lambda_logs" {
-  name              = "/aws/lambda/${var.name_prefix}-candle-historical-bulk-load"
+  name              = "/aws/lambda/${var.name_prefix}-candle-daily-ingest"
   retention_in_days = 7
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-candle-historical-bulk-load-logs"
+    Name = "${var.name_prefix}-candle-daily-ingest-logs"
   })
 }
 
 // Lambda function
-resource "aws_lambda_function" "bulk_load_lambda" {
-  function_name    = "${var.name_prefix}-candle-historical-bulk-load"
+resource "aws_lambda_function" "s3_to_rds_lambda" {
+  function_name    = "${var.name_prefix}-candle-daily-ingest"
   role             = aws_iam_role.lambda_role.arn
   handler          = "dist/index.handler"
   runtime          = "nodejs20.x"
-  filename         = "../../packages/candleHistoricalBulkLoad/dist/lambda.zip"
-  source_code_hash = filebase64sha256("../../packages/candleHistoricalBulkLoad/dist/lambda.zip")
-  timeout          = 900 // 15 minutes - maximum
-  memory_size      = 3008 // Maximum memory for better performance with large parquet files
+  filename         = "../../packages/candleDailyIngest/dist/lambda.zip"
+  source_code_hash = filebase64sha256("../../packages/candleDailyIngest/dist/lambda.zip")
+  timeout          = 300 // 5 minutes
 
   // VPC configuration for database access
   vpc_config {
@@ -132,15 +102,14 @@ resource "aws_lambda_function" "bulk_load_lambda" {
 
   environment {
     variables = {
-      DATABASE_URL        = var.database_url
-      AWS_REGION          = data.aws_region.current.name
-      S3_BUCKET           = var.s3_bucket_name
-      LAMBDA_FUNCTION_NAME = aws_lambda_function.bulk_load_lambda.function_name
+      DATABASE_URL = var.database_url
+      AWS_REGION   = data.aws_region.current.name
+      S3_BUCKET    = var.s3_bucket_name
     }
   }
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-candle-historical-bulk-load"
+    Name = "${var.name_prefix}-candle-daily-ingest"
   })
 
   depends_on = [

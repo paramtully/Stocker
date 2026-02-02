@@ -1,5 +1,5 @@
 {
-    "name": "@stocker/candle-historical-load",
+    "name": "@stocker/candle-historical",
     "version": "1.0.0",
     "type": "module",
     "main": "./dist/index.js",

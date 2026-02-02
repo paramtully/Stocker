@@ -47,8 +47,8 @@ module "database" {
   lambda_security_group_ids = [
     module.api.lambda_security_group_id,
     module.candle_split_detector_apply.lambda_security_group_id,
-    module.candle_s3_to_rds.lambda_security_group_id,
-    module.news_s3_to_rds.lambda_security_group_id,
+    module.candle_daily_ingest.lambda_security_group_id,
+    module.news_daily_ingest.lambda_security_group_id,
     module.guest_user_cleanup.lambda_security_group_id
   ]
 
@@ -70,8 +70,8 @@ module "ecs_cluster" {
   tags        = local.required_tags
 }
 
-module "candle_load" {
-  source = "../../modules/candleLoad"
+module "candle_historical" {
+  source = "../../modules/candleHistorical"
 
   name_prefix = local.name_prefix
   tags        = local.required_tags
@@ -92,8 +92,8 @@ module "candle_load" {
   cluster_arn  = module.ecs_cluster.cluster_arn
 }
 
-module "news_load" {
-  source = "../../modules/newsLoad"
+module "news_historical" {
+  source = "../../modules/newsHistorical"
 
   name_prefix = local.name_prefix
   tags        = local.required_tags
@@ -183,8 +183,8 @@ module "candle_split_detector_apply" {
 }
 
 
-module "candle_s3_to_rds" {
-  source = "../../modules/candleS3ToRds"
+module "candle_daily_ingest" {
+  source = "../../modules/candleDailyIngest"
 
   name_prefix = local.name_prefix
   tags        = local.required_tags
@@ -204,8 +204,8 @@ module "candle_s3_to_rds" {
   aws_region = var.region
 }
 
-module "news_s3_to_rds" {
-  source = "../../modules/newsS3ToRds"
+module "news_daily_ingest" {
+  source = "../../modules/newsDailyIngest"
 
   name_prefix = local.name_prefix
   tags        = local.required_tags
@@ -225,8 +225,8 @@ module "news_s3_to_rds" {
   aws_region = var.region
 }
 
-module "candle_historical_bulk_load" {
-  source = "../../modules/candleHistoricalBulkLoad"
+module "candle_historical_ingest" {
+  source = "../../modules/candleHistoricalIngest"
 
   name_prefix = local.name_prefix
   tags        = local.required_tags
@@ -237,6 +237,32 @@ module "candle_historical_bulk_load" {
 
   // Database configuration
   database_url = module.database.database_url
+
+  // S3 configuration
+  s3_bucket_name = module.s3.bucket_name
+
+  // Region
+  aws_region = var.region
+}
+
+module "candle_daily" {
+  source = "../../modules/candleDaily"
+
+  name_prefix = local.name_prefix
+  tags        = local.required_tags
+
+  // S3 configuration
+  s3_bucket_name = module.s3.bucket_name
+
+  // Region
+  aws_region = var.region
+}
+
+module "news_daily" {
+  source = "../../modules/newsDaily"
+
+  name_prefix = local.name_prefix
+  tags        = local.required_tags
 
   // S3 configuration
   s3_bucket_name = module.s3.bucket_name

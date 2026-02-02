@@ -1,5 +1,5 @@
 {
-  "name": "@stocker/candle-s3-to-rds",
+  "name": "@stocker/candle-daily-ingest",
   "version": "1.0.0",
   "type": "module",
   "main": "./dist/index.js",

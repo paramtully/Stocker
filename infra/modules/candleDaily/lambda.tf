@@ -1,6 +1,6 @@
 // IAM role for Lambda
 resource "aws_iam_role" "lambda_role" {
-  name = "${var.name_prefix}-new-listing-ingestion-role"
+  name = "${var.name_prefix}-candle-daily-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -14,7 +14,7 @@ resource "aws_iam_role" "lambda_role" {
   })
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-new-listing-ingestion-role"
+    Name = "${var.name_prefix}-candle-daily-role"
   })
 }
 
@@ -24,10 +24,10 @@ resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-// IAM Policy for S3 write access
+// IAM Policy for S3 read/write access
 resource "aws_iam_role_policy" "lambda_s3_policy" {
-  name = "${var.name_prefix}-new-listing-ingestion-s3-policy"
-  role = aws_iam_role.lambda_role.name
+  name = "${var.name_prefix}-candle-daily-s3-policy"
+  role = aws_iam_role.lambda_role.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -35,11 +35,15 @@ resource "aws_iam_role_policy" "lambda_s3_policy" {
       {
         Effect = "Allow"
         Action = [
+          "s3:GetObject",
           "s3:PutObject",
-          "s3:PutObjectAcl"
+          "s3:ListBucket"
         ]
         Resource = [
-          "arn:aws:s3:::${var.s3_bucket_name}/listings*"
+          "arn:aws:s3:::${var.s3_bucket_name}",
+          "arn:aws:s3:::${var.s3_bucket_name}/listings/*",
+          "arn:aws:s3:::${var.s3_bucket_name}/candles/*",
+          "arn:aws:s3:::${var.s3_bucket_name}/candles/year/*"
         ]
       }
     ]
@@ -48,23 +52,23 @@ resource "aws_iam_role_policy" "lambda_s3_policy" {
 
 // CloudWatch Log Group
 resource "aws_cloudwatch_log_group" "lambda_logs" {
-  name              = "/aws/lambda/${var.name_prefix}-new-listing-ingestion"
+  name              = "/aws/lambda/${var.name_prefix}-candle-daily"
   retention_in_days = 7
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-new-listing-ingestion-logs"
+    Name = "${var.name_prefix}-candle-daily-logs"
   })
 }
 
 // Lambda function
-resource "aws_lambda_function" "ingestion_lambda" {
-  function_name    = "${var.name_prefix}-new-listing-ingestion"
+resource "aws_lambda_function" "daily_lambda" {
+  function_name    = "${var.name_prefix}-candle-daily"
   role             = aws_iam_role.lambda_role.arn
   handler          = "dist/index.handler"
   runtime          = "nodejs20.x"
-  filename         = "../../packages/candleNewListingIngestion/dist/lambda.zip"
-  source_code_hash = filebase64sha256("../../packages/candleNewListingIngestion/dist/lambda.zip")
-  timeout          = 300 // 5 minutes
+  filename         = "../../packages/candleDaily/dist/lambda.zip"
+  source_code_hash = filebase64sha256("../../packages/candleDaily/dist/lambda.zip")
+  timeout          = 900 // 15 minutes - may need time for many tickers
 
   // No VPC configuration - runs in default VPC or no VPC for internet access
 
@@ -76,7 +80,7 @@ resource "aws_lambda_function" "ingestion_lambda" {
   }
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-new-listing-ingestion"
+    Name = "${var.name_prefix}-candle-daily"
   })
 
   depends_on = [aws_cloudwatch_log_group.lambda_logs]
@@ -84,4 +88,3 @@ resource "aws_lambda_function" "ingestion_lambda" {
 
 // Add data source for current region
 data "aws_region" "current" {}
-

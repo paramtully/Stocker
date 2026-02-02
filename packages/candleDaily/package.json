@@ -1,13 +1,12 @@
 {
-  "name": "@stocker/news-historical-load",
+  "name": "@stocker/candle-daily",
   "version": "1.0.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "tsx src/index.ts"
+    "start": "node dist/index.js"
   },
   "dependencies": {
     "@stocker/domain": "*",
@@ -15,8 +14,6 @@
     "@stocker/bucketRepository": "*"
   },
   "devDependencies": {
-    "typescript": "~5.9.3",
-    "tsx": "^4.21.0"
+    "typescript": "~5.9.3"
   }
 }
-
