@@ -14,7 +14,7 @@ resource "aws_ecs_task_definition" "candle_load_task" {
       name  = "candle-load"
       image = "${aws_ecr_repository.candle_load_repo.repository_url}:latest"
 
-      essential = true
+      essentiial = true
 
       environment = [
         {
