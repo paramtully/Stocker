@@ -1,0 +1,21 @@
+{
+  "name": "@stocker/news-historical-ingest",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@stocker/domain": "*",
+    "@stocker/bucketRepository": "*",
+    "@stocker/repositories": "*",
+    "@stocker/db": "*",
+    "@aws-sdk/client-lambda": "^3.0.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3"
+  }
+}

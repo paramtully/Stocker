@@ -1,0 +1,21 @@
+{
+  "name": "@stocker/candle-new-listings-ingest",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@stocker/domain": "*",
+    "@stocker/infra": "*",
+    "@stocker/repositories": "*",
+    "@stocker/db": "*"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3"
+  }
+}
+

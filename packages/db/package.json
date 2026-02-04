@@ -1,0 +1,20 @@
+{
+    "name": "@stocker/db",
+    "version": "1.0.0",
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+      "build": "tsc",
+      "migrate": "drizzle-kit migrate"
+    },
+    "dependencies": {
+      "drizzle-orm": "^0.45.1",
+      "pg": "^8.16.3"
+    },
+    "devDependencies": {
+      "@types/pg": "^8.11.0",
+      "drizzle-kit": "^0.31.8",
+      "typescript": "~5.9.3"
+    }
+  }
