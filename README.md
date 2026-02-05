@@ -247,6 +247,7 @@ Production-grade auth system:
 - IAM roles with least-privilege principles
 - Secure session management
 - API Gateway integration for request validation
+- **Multi-layered rate limiting** with AWS WAF and stage throttling
 
 ### 6. Admin Dashboard
 
@@ -282,6 +283,37 @@ The entire infrastructure is defined in Terraform with a modular architecture:
 - **Security groups** with least-privilege access
 - **NAT Gateway** for outbound internet access from private subnets
 - **VPC endpoints** for S3 access (cost optimization)
+
+### Rate Limiting & DDoS Protection
+
+Production-grade rate limiting implemented through a multi-layered approach:
+
+**Layer 1: API Gateway Stage Throttling**
+- **Burst limit**: 100 requests (allows short traffic spikes)
+- **Rate limit**: 50 requests/second (sustained rate)
+- Applies to all routes as baseline protection
+- Prevents overwhelming the backend Lambda function
+
+**Layer 2: AWS WAF Rate-Based Rules**
+- **IP-based rate limiting** with different limits for authenticated vs unauthenticated users
+- **Unauthenticated endpoints**: 100 requests per 5 minutes per IP
+  - Protects public routes: `/api/auth/guest`, `/api/auth/signup`, `/api/stocks/search`
+  - Prevents abuse from anonymous users
+- **Authenticated endpoints**: 1000 requests per 5 minutes per IP
+  - Applies to JWT-protected routes
+  - Higher limit accommodates normal user activity while preventing abuse
+
+**Implementation Details:**
+- WAF Web ACL with REGIONAL scope attached to API Gateway stage
+- CloudWatch metrics enabled for monitoring rate limit hits
+- Automatic blocking with 429 Too Many Requests responses
+- Configurable limits via Terraform variables
+
+**Industry Standards:**
+- Follows FAANG-level security practices
+- Differentiated limits for authenticated/unauthenticated traffic
+- 5-minute sliding windows balance protection with user experience
+- Multi-layered defense-in-depth approach
 
 ### CI/CD Pipeline
 
