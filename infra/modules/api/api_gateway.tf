@@ -150,6 +150,13 @@ resource "aws_apigatewayv2_stage" "api_stage" {
   api_id      = aws_apigatewayv2_api.api_gateway.id
   name        = "$default"
   auto_deploy = true
+
+  // Rate limiting configuration
+  default_route_settings {
+    throttling_burst_limit = var.throttle_burst_limit
+    throttling_rate_limit  = var.throttle_rate_limit
+  }
+
   tags = merge(var.tags, {
     Name = "${var.name_prefix}-api-stage"
   })

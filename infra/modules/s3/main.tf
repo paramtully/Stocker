@@ -4,7 +4,7 @@ resource "aws_s3_bucket" "bucket" {
   tags = var.tags
 }
 
-# Block all public access (AWS best practice)
+# Block¸ all public access (AWS best practice)
 resource "aws_s3_bucket_public_access_block" "bucket_public_access_block" {
   bucket = aws_s3_bucket.bucket.id
 
@@ -25,7 +25,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "bucket" {
   }
 }
 
-# Enable versioning (optional but recommended for data integrity)
+# versioning (optional but recommended for data integrity)
 resource "aws_s3_bucket_versioning" "bucket" {
   bucket = aws_s3_bucket.bucket.id
   versioning_configuration {
