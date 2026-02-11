@@ -113,6 +113,12 @@ graph TB
     EventBridge --> NDI
 ```
 
+### AWS Infrastructure Architecture
+
+The following diagram illustrates the complete AWS infrastructure architecture, including data ingestion pipelines, processing layers, API access, and database interactions:
+
+![AWS Architecture Diagram](docs/images/aws-architecture-diagram.png)
+
 ### Architecture Principles
 
 1. **Separation of Concerns**: Clear boundaries between data ingestion, processing, storage, and presentation
