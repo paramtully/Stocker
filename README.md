@@ -117,7 +117,7 @@ graph TB
 
 The following diagram illustrates the complete AWS infrastructure architecture, including data ingestion pipelines, processing layers, API access, and database interactions:
 
-![AWS Architecture Diagram](docs/images/aws-architecture-diagram.png)
+![AWS Architecture Diagram](./docs/images/aws-architecture-diagram.jpg)
 
 ### Architecture Principles
 
